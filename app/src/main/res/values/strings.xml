@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">My Application</string>
+    <string name="AP4002_LBL_1">終日</string>
+    <string name="TIME_FORMAT_WEEK">d EEE</string>
+    <string name="AP4001_AP4002_more_event">他%d件</string>
+    <string name="AP4002_TITLE_MEETING_DECIDED" formatted="false">[面会]%s%s</string>
+    <string name="AP4002_TITLE_MEETING_ACCEPTING">[面会枠]</string>
+    <string name="AP4002_TITLE_MEETING_MEDIATOR">[面会枠]</string>
+    <string name="AP4002_TITLE_BRIEFING" formatted="false">[説明会]%s%s</string>
+    <string name="AP4002_TITLE_VISIT" formatted="false">[訪問]%s</string>
+    <string name="AP4002_TITLE_SOCIETY" formatted="false">[学会]%s</string>
+    <string name="AP4002_TITLE_STAFF" formatted="false">%s[の予定]</string>
+    <string name="AP4002_TITLE_HOLIDAY" formatted="false">祝日%s</string>
+    <string name="AP4002_TITLE_INSIDE_GROUP" formatted="false">%s/院内グループ:%s</string>
+    <string name="AP4002_TITLE_OUTSIDE_GROUP" formatted="false">%s/院外グループ:%s</string>\
+
+    <string name="COMMON_MON">月</string>
+    <string name="COMMON_TUE">火</string>
+    <string name="COMMON_WED">水</string>
+    <string name="COMMON_THU">木</string>
+    <string name="COMMON_FRI">金</string>
+    <string name="COMMON_SAT">土</string>
+    <string name="COMMON_SUN">日</string>
+
+</resources>

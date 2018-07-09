@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <!--AP4001, AP4002 START-->
+    <color name="normal_day_number">#57534F</color>
+    <color name="saturday_number">#4991DC</color>
+    <color name="sunday_number">#D11D29</color>
+    <color name="today_number">#F18D00</color>
+    <color name="selected_day">#CECDCB</color>
+    <color name="ap4001_space_line">#EDEDED</color>
+    <color name="ap4002_color_button_create_event">#F18D00</color>
+    <color name="common_text_primary">#3B3732</color>
+    <color name="common_text_secondary">#625F5A</color>
+    <color name="common_text_third">#8F8F8F</color>
+    <!--AP4001, AP4002 END-->
+</resources>

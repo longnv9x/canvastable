@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><!-- AP4002 カレンダー(週表示) -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:animateLayoutChanges="true"
+    android:orientation="vertical">
+
+    <com.example.long_pc.myapplication.WeekView
+        android:id="@+id/weekView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:dayBackgroundColor="#ffffff"
+        app:eventCornerRadius="1.75dp"
+        app:eventPadding="2.5dp"
+        app:eventTextColor="@android:color/white"
+        app:headerColumnBackground="#ffffffff"
+        app:headerColumnPadding="8dp"
+        app:headerColumnTextColor="@color/common_text_primary"
+        app:headerColumnTextColorSaturday="#4991DC"
+        app:headerColumnTextColorSunday="#D11D29"
+        app:headerColumnTextColorTime="@color/common_text_third"
+        app:headerRowBackgroundColor="#cccccc"
+        app:headerRowPadding="8dp"
+        app:horizontalFlingEnabled="true"
+        app:hourHeight="40dp"
+        app:hourSeparatorColor="#cccccc"
+        app:noOfVisibleDays="3"
+        app:showDistinctWeekendColor="true"
+        app:showNowLine="false"
+        app:todayBackgroundColor="#20ffff00"/>
+
+</FrameLayout>
