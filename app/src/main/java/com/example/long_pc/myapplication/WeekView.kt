@@ -34,24 +34,30 @@ class WeekView : View {
         const val NORMAL_ALPHA = 255
         const val STROKE_HIGHLIGHT_WIDTH = 4F
         const val DEFAULT_STROKE_WIDTH = 2F
+        const val DEFAULT_SPACE_WIDTH = 5F
         val STROKE_HIGHLIGHT_COLOR = Color.parseColor("#c7666666")
-        const val DISTANCE_FROM_TOP = 60
+        const val DISTANCE_FROM_TOP = 0
         const val BLOCK = 15
+        const val DEFAULT_EXPAND_WIDTH = 30
+        const val DEFAULT_EXPAND_HEIGHT= 20
     }
 
-    private var NumberStaff: Int = 0
+    private var NumberStaff: Int = 100
     private var mContext: Context
     private val mTeamTextPaint: Paint by lazy { Paint(Paint.ANTI_ALIAS_FLAG) }
     private var mTeamTextWidth: Float = 0F
     private var mTeamCorrectBackground: Float = 0F
     private var mTeamTextPadding: Float = 0F
     private var mTeamTextHeight: Float = 0F
-    private val mTimeTextPaint: Paint by lazy { Paint(Paint.ANTI_ALIAS_FLAG) }
-    private var mTimeTextWidth: Float = 0F
-    private var mTimeTextHeight: Float = 0F
+    private val mNameTextPaint: Paint by lazy { Paint(Paint.ANTI_ALIAS_FLAG) }
+    private var mNameTextWidth: Float = 0F
+    private var mNameTextHeight: Float = 0F
     private val mHeaderTextPaint: Paint by lazy { Paint(Paint.ANTI_ALIAS_FLAG) }
     private var mHeaderTextHeight: Float = 0F
     private var mHeaderHeight: Float = 0F
+    private val mDepartmentPaint: Paint by lazy { Paint(Paint.ANTI_ALIAS_FLAG) }
+    private var mDepartmentTextWidth: Float = 0F
+    private var mDepartmentTextHeight: Float = 0F
     private lateinit var mGestureDetector: GestureDetectorCompat
     private var mScroller: OverScroller? = null
     private val mCurrentOrigin = PointF(0f, 0f)
@@ -62,11 +68,6 @@ class WeekView : View {
     private val mHourSeparatorPaint: Paint by lazy { Paint() }
     private var mHeaderMarginBottom: Float = 0F
     private val mTodayBackgroundPaint: Paint by lazy { Paint() }
-    //    private val mFutureBackgroundPaint: Paint by lazy { Paint() }
-//    private val mFutureWeekendBackgroundPaint: Paint by lazy { Paint() }
-//    private val mPastWeekendBackgroundPaint: Paint by lazy { Paint() }
-//    private val mNowLinePaint: Paint by lazy { Paint() }
-//    private val mTodayHeaderTextPaint: TextPaint by lazy { TextPaint(Paint.ANTI_ALIAS_FLAG) }
     private val mEventBackgroundPaint: Paint by lazy { Paint() }
 
     /**
@@ -75,9 +76,8 @@ class WeekView : View {
     private var mHeaderColumnWidth: Float = 0F
 
     private var mEventRects: ArrayList<EventRect> = ArrayList()
-    //    private var mPreviousPeriodEvents: List<EventSummary>? = null
+    private var mCurentDepartment: String? = null
     private var mCurrentPeriodEvents: List<EventSummary>? = null
-    //    private var mNextPeriodEvents: List<EventSummary>? = null
     private val mEventTextPaint: TextPaint by lazy { TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.LINEAR_TEXT_FLAG) }
     private val mHeaderColumnBackgroundPaint: Paint by lazy { Paint() }
     private var mFetchedPeriod = -1 // the middle period the calendar has fetched.
@@ -152,12 +152,13 @@ class WeekView : View {
     var mTextSize = 16
         set(value) {
             field = value
-//            mTodayHeaderTextPaint.textSize = mTextSize.toFloat()
+            mDepartmentPaint.textSize = mTextSize.toFloat()
             mHeaderTextPaint.textSize = mTextSize.toFloat()
-            mTimeTextPaint.textSize = mTextSize.toFloat()
+            mNameTextPaint.textSize = mTextSize.toFloat()
             invalidate()
         }
 
+    private var mTextSizeHeaderFirstColumn = 16
     private var mTextSizeTime = 14
     var mHeaderColumnPadding = 10
         set(value) {
@@ -169,7 +170,7 @@ class WeekView : View {
         set(value) {
             field = value
             mHeaderTextPaint.color = mHeaderColumnTextColor
-            mTimeTextPaint.color = mHeaderColumnTextColor
+            mNameTextPaint.color = mHeaderColumnTextColor
             invalidate()
         }
 
@@ -270,6 +271,13 @@ class WeekView : View {
 //            field = value
 //            invalidate()
 //        }
+
+    var mTextFirstColumnColor = Color.rgb(241, 241, 0)
+        set(value) {
+            field = value
+            mDepartmentPaint.color = field
+            invalidate()
+        }
 
     var mHourSeparatorColor = Color.rgb(230, 230, 230)
         set(value) {
@@ -562,11 +570,11 @@ class WeekView : View {
             mCurrentFlingDirection = mCurrentScrollDirection
             when (mCurrentFlingDirection) {
                 Direction.LEFT, Direction.RIGHT -> {
-                    mScroller?.fling(mCurrentOrigin.x.toInt(), mCurrentOrigin.y.toInt(), (velocityX * mXScrollingSpeed).toInt(), 0, Integer.MIN_VALUE, Integer.MAX_VALUE, (-((mHourHeight * 24).toFloat() + mHeaderHeight + mHeaderMarginBottom + mTimeTextHeight / 2 - height)).toInt(), 0)
+                    mScroller?.fling(mCurrentOrigin.x.toInt(), mCurrentOrigin.y.toInt(), (velocityX * mXScrollingSpeed).toInt(), 0, Integer.MIN_VALUE, Integer.MAX_VALUE, (-((mHourHeight * NumberStaff).toFloat() + mHeaderHeight + mHeaderMarginBottom + mNameTextHeight / 2 - height)).toInt(), 0)
                     ViewCompat.postInvalidateOnAnimation(this@WeekView)
                 }
                 Direction.VERTICAL -> if (e1.y > mHeaderHeight || mNeedToScrollAllDayEvents) {
-                    mScroller?.fling(mCurrentOrigin.x.toInt(), mCurrentOrigin.y.toInt(), 0, velocityY.toInt(), Integer.MIN_VALUE, Integer.MAX_VALUE, if (mNeedToScrollAllDayEvents) mMinYWhenScrollingAllDayEvents else (-((mHourHeight * 24).toFloat() + mHeaderHeight + mHeaderMarginBottom + mTimeTextHeight / 2 - height)).toInt(), 0)
+                    mScroller?.fling(mCurrentOrigin.x.toInt(), mCurrentOrigin.y.toInt(), 0, velocityY.toInt(), Integer.MIN_VALUE, Integer.MAX_VALUE, if (mNeedToScrollAllDayEvents) mMinYWhenScrollingAllDayEvents else (-((mHourHeight * NumberStaff).toFloat() + mHeaderHeight + mHeaderMarginBottom + mNameTextHeight / 2 - height)).toInt(), 0)
                     ViewCompat.postInvalidateOnAnimation(this@WeekView)
                 }
                 else -> {
@@ -709,18 +717,18 @@ class WeekView : View {
 
         // Measure settings for time column.
         val rect = Rect()
-        mTimeTextPaint.getTextBounds("00 PM", 0, "00 PM".length, rect)
-        mTimeTextHeight = rect.height().toFloat()
-        mHeaderMarginBottom = -mTimeTextHeight / 2
-        mTimeTextPaint.textAlign = Paint.Align.RIGHT
-        mTimeTextPaint.textSize = mTextSizeTime.toFloat()
-        mTimeTextPaint.color = mHeaderColumnTextColorTime
-        mTeamTextPaint.textAlign = Paint.Align.RIGHT
+        mNameTextPaint.getTextBounds("00 PM", 0, "00 PM".length, rect)
+        mNameTextHeight = rect.height().toFloat()
+        mHeaderMarginBottom = -mNameTextHeight / 2
+        mNameTextPaint.textAlign = Paint.Align.LEFT
+        mNameTextPaint.textSize = mTextSizeTime.toFloat()
+        mNameTextPaint.color = mHeaderColumnTextColorTime
+        mTeamTextPaint.textAlign = Paint.Align.LEFT
         mTeamTextPaint.textSize = mTextSizeTime.toFloat()
         mTeamTextPaint.color = Color.WHITE
         mTeamCorrectBackground = 5F
         mTeamTextPadding = 5F
-        mTeamTextHeight = mTimeTextHeight
+        mTeamTextHeight = mNameTextHeight
 
         initTextTimeWidth()
 
@@ -789,11 +797,15 @@ class WeekView : View {
 
         // Prepare header column background color.
         mHeaderColumnBackgroundPaint.color = mHeaderColumnBackgroundColor
-
+        mHeaderColumnBackgroundPaint.textAlign = Paint.Align.LEFT
         // Prepare event text size and color.
         mEventTextPaint.style = Paint.Style.FILL
         mEventTextPaint.color = mEventTextColor
         mEventTextPaint.textSize = mEventTextSize.toFloat()
+
+        mDepartmentPaint.textAlign = Paint.Align.LEFT
+        mDepartmentPaint.textSize = 20f
+        mDepartmentPaint.color = Color.BLACK
     }
 
     // fix rotation changes
@@ -806,27 +818,28 @@ class WeekView : View {
      * Initialize time column width. Calculate value with all possible hours (supposed widest text).
      */
     private fun initTextTimeWidth() {
-        mTimeTextWidth = (0..100)
+        mNameTextWidth = (0..NumberStaff)
                 .map {
                     // Measure time string and get max width.
-                    mDateTimeInterpreter.interpretTime(it)
+                    //  mDateTimeInterpreter.interpretTime(it)
+                    return@map "name $it"
                 }
-                .map { mTimeTextPaint.measureText(it) }
+                .map { mNameTextPaint.measureText(it) }
                 .max()
                 ?: 0f
-        mTeamTextWidth = mTimeTextPaint.measureText("Team")
+        mTeamTextWidth = mNameTextPaint.measureText("Team")
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         canvas.drawColor(mBackgroundColor)
-        canvas.drawLine(0F, DEFAULT_STROKE_WIDTH / 2, mHeaderColumnWidth + DEFAULT_STROKE_WIDTH, DEFAULT_STROKE_WIDTH / 2, mHeaderBackgroundPaint)
+        canvas.drawLine(0F, DEFAULT_STROKE_WIDTH / 2, mHeaderColumnWidth + DEFAULT_STROKE_WIDTH + mHeaderColumnPadding * 2, DEFAULT_STROKE_WIDTH / 2, mHeaderBackgroundPaint)
         canvas.drawLine(0F, height - DEFAULT_STROKE_WIDTH / 2, width.toFloat(), height - DEFAULT_STROKE_WIDTH / 2, mHeaderBackgroundPaint)
 
         drawHeaderRowAndEvents(canvas)
 
-        drawTimeColumnAndAxes(canvas)
+        drawStaffColumnAndAxes(canvas)
     }
 
     /**
@@ -894,7 +907,7 @@ class WeekView : View {
      *
      * @param canvas
      */
-    private fun drawTimeColumnAndAxes(canvas: Canvas) {
+    private fun drawStaffColumnAndAxes(canvas: Canvas) {
         // Draw the background color for the header column.
         canvas.drawRect(0f, mHeaderHeight, mHeaderColumnWidth, height.toFloat(), mHeaderColumnBackgroundPaint)
 
@@ -905,30 +918,29 @@ class WeekView : View {
             return
         }
 
-        for (i in 0..100) {
-            val topLine = mCurrentOrigin.y + (mHourHeight * i).toFloat()  + mHeaderMarginBottom + mHeaderHeight
-            val top = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * i).toFloat() + mHourHeight/2 + mHeaderMarginBottom*2
-
+        for (i in 0..NumberStaff) {
+            val topLine = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * i).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP
+            val top = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * i).toFloat() + mHourHeight / 2 + mHeaderMarginBottom + DISTANCE_FROM_TOP + mTeamTextHeight / 2
             // Draw the text if its y position is not outside of the visible area. The pivot point of the text is the point at the bottom-right corner.
-          //  val name = mDateTimeInterpreter.interpretTime(i)
+            //  val name = mDateTimeInterpreter.interpretTime(i)
             val name = "name $i"
             val teamColor = "Team"
             if (top < height) {
                 canvas.drawLine(0F, topLine, mHeaderColumnWidth, topLine, mHeaderBackgroundPaint)
-                val background = getTextBackgroundSize(mTeamTextWidth, top + mTeamTextHeight, teamColor, mTeamTextPaint)
+                val background = getTextBackgroundSize(mHeaderColumnPadding.toFloat(), top, teamColor, mTeamTextPaint)
                 mHeaderColumnBackgroundPaint.color = Color.RED
                 canvas.drawRoundRect(background, mTeamCorrectBackground, mTeamCorrectBackground, mHeaderColumnBackgroundPaint)
-                canvas.drawText(teamColor, mTeamTextWidth + mHeaderColumnPadding * 2, top + mTeamTextHeight, mTeamTextPaint)
+                canvas.drawText(teamColor, mHeaderColumnPadding.toFloat() + DEFAULT_SPACE_WIDTH, top, mTeamTextPaint)
                 mHeaderColumnBackgroundPaint.color = Color.WHITE
-                canvas.drawText(name, mTeamTextWidth + mTimeTextWidth + mHeaderColumnPadding * 2, top + mTimeTextHeight, mTimeTextPaint)
+                canvas.drawText(name, mTeamTextWidth + mHeaderColumnPadding + DEFAULT_SPACE_WIDTH * 3, top, mNameTextPaint)
             }
         }
     }
 
     private fun getTextBackgroundSize(x: Float, y: Float, text: String, paint: Paint): RectF {
         val fontMetrics = paint.fontMetrics
-        val halfTextLength = paint.measureText(text) / 2 + 5
-        return RectF(x - halfTextLength, y + fontMetrics.top, x + halfTextLength, y + fontMetrics.bottom)
+        val halfTextLength = paint.measureText(text) + DEFAULT_SPACE_WIDTH * 2
+        return RectF(x, y + fontMetrics.top, x + halfTextLength, y + fontMetrics.bottom)
     }
 
     /**
@@ -938,7 +950,7 @@ class WeekView : View {
      */
     private fun drawHeaderRowAndEvents(canvas: Canvas) {
         // Calculate the available width for each day.
-        mHeaderColumnWidth = mTimeTextWidth + mTeamTextWidth + mHeaderColumnPadding * 2 + mTeamTextPadding * 2
+        mHeaderColumnWidth = mNameTextWidth + mTeamTextWidth + mHeaderColumnPadding * 2 + mTeamTextPadding * 2
         mWidthPerDay = width.toFloat() - mHeaderColumnWidth
         mWidthPerDay /= mNumberOfVisibleDays
 
@@ -953,7 +965,7 @@ class WeekView : View {
 
             mAreDimensionsInvalid = false
             if (mScrollToHour >= 0)
-                goToHour(mScrollToHour)
+                goToStaff(mScrollToHour)
 
             mScrollToDay = null
             mScrollToHour = -1.0
@@ -985,8 +997,8 @@ class WeekView : View {
         // If the new mCurrentOrigin.y is invalid, make it valid.
         if (mNeedToScrollAllDayEvents) {
             mCurrentOrigin.y = Math.max(mCurrentOrigin.y, mMinYWhenScrollingAllDayEvents.toFloat())
-        } else if (mCurrentOrigin.y < height.toFloat() - (mHourHeight * 24).toFloat() - mHeaderHeight - (mHeaderRowPadding * 2).toFloat() - mHeaderMarginBottom - mTimeTextHeight / 2) {
-            mCurrentOrigin.y = height.toFloat() - (mHourHeight * 24).toFloat() - mHeaderHeight - (mHeaderRowPadding * 2).toFloat() - mHeaderMarginBottom - mTimeTextHeight / 2
+        } else if (mCurrentOrigin.y < height.toFloat() - (mHourHeight * NumberStaff).toFloat() - mHeaderHeight - (mHeaderRowPadding * 2).toFloat() - mHeaderMarginBottom - mNameTextHeight / 2) {
+            mCurrentOrigin.y = height.toFloat() - (mHourHeight * NumberStaff).toFloat() - mHeaderHeight - (mHeaderRowPadding * 2).toFloat() - mHeaderMarginBottom - mNameTextHeight / 2
         }
 
         // Don't put an "else if" because it will trigger a glitch when completely zoomed out and
@@ -1012,7 +1024,7 @@ class WeekView : View {
         }
 
         // Clip to paint events only.
-        canvas.clipRect(mHeaderColumnWidth, mHeaderHeight + mHeaderMarginBottom + mTimeTextHeight / 2, width.toFloat(), height.toFloat(), Region.Op.REPLACE)
+        canvas.clipRect(mHeaderColumnWidth, mHeaderHeight + mHeaderMarginBottom + mNameTextHeight / 2, width.toFloat(), height.toFloat(), Region.Op.REPLACE)
 
         mFirstVisibleDay!!.add(Calendar.DATE, -Math.round(mCurrentOrigin.x / mWidthPerDay))
 
@@ -1052,30 +1064,30 @@ class WeekView : View {
 //                if (day.get(Calendar.DAY_OF_WEEK) == mFirstDayOfWeek && dayNumber != leftDaysWithGaps + 1) {
 //                    mDayBackgroundPaint.color = STROKE_HIGHLIGHT_COLOR
 //                    mDayBackgroundPaint.strokeWidth = STROKE_HIGHLIGHT_WIDTH
-//                    canvas.drawLine(startPixel - DEFAULT_STROKE_WIDTH, mHeaderHeight + mTimeTextHeight / 2 + mHeaderMarginBottom, startPixel - DEFAULT_STROKE_WIDTH, height.toFloat(), mDayBackgroundPaint)
+//                    canvas.drawLine(startPixel - DEFAULT_STROKE_WIDTH, mHeaderHeight + mNameTextHeight / 2 + mHeaderMarginBottom, startPixel - DEFAULT_STROKE_WIDTH, height.toFloat(), mDayBackgroundPaint)
 //                    mDayBackgroundPaint.color = mHeaderRowBackgroundColor
 //                    mDayBackgroundPaint.strokeWidth = DEFAULT_STROKE_WIDTH
 //                } else {
-//                    dashPath.moveTo(start, mHeaderHeight + mTimeTextHeight / 2 + mHeaderMarginBottom)
+//                    dashPath.moveTo(start, mHeaderHeight + mNameTextHeight / 2 + mHeaderMarginBottom)
 //                    dashPath.lineTo(start, height.toFloat())
 //                    canvas.drawPath(dashPath, mDayBackgroundPaint)
 //                    dashPath.reset()
 //                }
-                dashPath.moveTo(start, mHeaderHeight + mTimeTextHeight / 2 + mHeaderMarginBottom)
+                dashPath.moveTo(start, mHeaderHeight + mNameTextHeight / 2 + mHeaderMarginBottom)
                 dashPath.lineTo(start, height.toFloat())
                 canvas.drawPath(dashPath, mDayBackgroundPaint)
                 dashPath.reset()
                 if (sameDay) {
-                    canvas.drawRect(start + DEFAULT_STROKE_WIDTH, mHeaderHeight + mTimeTextHeight / 2 + mHeaderMarginBottom, startPixel + mWidthPerDay - DEFAULT_STROKE_WIDTH, height - DEFAULT_STROKE_WIDTH / 2, mTodayBackgroundPaint)
+                    canvas.drawRect(start + DEFAULT_STROKE_WIDTH, mHeaderHeight + mNameTextHeight / 2 + mHeaderMarginBottom, startPixel + mWidthPerDay - DEFAULT_STROKE_WIDTH, height - DEFAULT_STROKE_WIDTH / 2, mTodayBackgroundPaint)
                 }
             }
 
             if (!mNeedToScrollAllDayEvents) {
                 // Draw the lines for hours.
                 val path = Path()
-                for (hourNumber in 0..100) {
-                    val top = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * hourNumber).toFloat() + mTimeTextHeight + mHeaderMarginBottom + DISTANCE_FROM_TOP
-                    if (top > mHeaderHeight + mTimeTextHeight / 2 + mHeaderMarginBottom - mHourSeparatorHeight && top < height && startPixel + mWidthPerDay - start > 0) {
+                for (hourNumber in 0..NumberStaff) {
+                    val top = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * hourNumber).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP
+                    if (top > mHeaderHeight + mNameTextHeight / 2 + mHeaderMarginBottom - mHourSeparatorHeight && top < height && startPixel + mWidthPerDay - start > 0) {
                         path.moveTo(start, top)
                         path.lineTo(start + mWidthPerDay, top)
                         canvas.drawPath(path, mHourSeparatorPaint)
@@ -1091,7 +1103,7 @@ class WeekView : View {
 
             // Draw the line at the current time.
 //            if (mShowNowLine && sameDay) {
-//                val startY = mHeaderHeight + mTimeTextHeight / 2 + mHeaderMarginBottom + mCurrentOrigin.y
+//                val startY = mHeaderHeight + mNameTextHeight / 2 + mHeaderMarginBottom + mCurrentOrigin.y
 //                val now = Calendar.getInstance()
 //                val beforeNow = (now.get(Calendar.HOUR_OF_DAY) + now.get(Calendar.MINUTE) / 60.0f) * mHourHeight
 //                canvas.drawLine(start, startY + beforeNow, startPixel + mWidthPerDay, startY + beforeNow, mNowLinePaint)
@@ -1106,11 +1118,20 @@ class WeekView : View {
         //Draw header, time, column START
         mHeaderBackgroundPaint.alpha = NORMAL_ALPHA
 
-        // Hide everything in the first cell (top left corner).
-        canvas.clipRect(0f, 0f, mTimeTextWidth + (mHeaderColumnPadding * 2).toFloat() + DEFAULT_STROKE_WIDTH, height.toFloat(), Region.Op.REPLACE)
-
+        // draw header first cell (top left corner).
+        canvas.clipRect(0f, 0f, mHeaderColumnWidth + DEFAULT_STROKE_WIDTH, height.toFloat(), Region.Op.REPLACE)
+        // Draw the header cell texts
+        mCurentDepartment = "department"
+        mDepartmentTextWidth = mDepartmentPaint.measureText(mCurentDepartment)
+        var top = mHeaderRowPadding.toFloat() + DISTANCE_FROM_TOP
+        val rect = Rect()
+        rect.set(0, 0, mHeaderColumnWidth.toInt(), mHeaderHeight.toInt())
+        canvas.drawRect(rect, mHeaderBackgroundPaint)
+        canvas.drawText(mCurentDepartment, mHeaderColumnPadding.toFloat(), top + mHeaderTextHeight, mDepartmentPaint)
+        var destRect = RectF(mDepartmentTextWidth + mHeaderColumnPadding + DEFAULT_SPACE_WIDTH, top, mDepartmentTextWidth + mHeaderColumnPadding + DEFAULT_STROKE_WIDTH + DEFAULT_EXPAND_WIDTH, (mHeaderTextHeight+ mHeaderColumnPadding + DEFAULT_EXPAND_HEIGHT).toFloat())
+        canvas.drawBitmap(mBitmapExpand, null, destRect, mDepartmentPaint)
         //draw line separator between column time and the rest
-        canvas.drawLine(mHeaderColumnWidth, mHeaderTextHeight + mHeaderRowPadding * 2, mHeaderColumnWidth, mHeaderHeight, mHeaderBackgroundPaint)
+        canvas.drawLine(mHeaderColumnWidth, mHeaderHeight, mHeaderColumnWidth, mHeaderHeight, mHeaderBackgroundPaint)
 
         // Draw the partial of line separating the header (not include all day event) and all-day events
         run {
@@ -1314,22 +1335,10 @@ class WeekView : View {
                     mHeaderTextPaint.alpha = NORMAL_ALPHA
                 }
 
-                // May be is draw in case of holiday, hmm... I'm still not understand what the below part code does
-                // so I temporarily comment those and use my code
-//                var strDay = TimeUtils.getDayOfMonth(day)
-//                var strDay = day.get(Calendar.DAY_OF_MONTH).toString()
-//                canvas.drawText(strDay, x, mHeaderTextHeight + mHeaderRowPadding, mHeaderTextPaint)
-//                val rect = Rect()
-//                strDay += "()"
-//                mHeaderTextPaint.getTextBounds(strDay, 0, strDay.length, rect)
-//                canvas.drawText(TimeUtils.getDayOfWeek(day), x + rect.width(), mHeaderTextHeight + mHeaderRowPadding, mHeaderTextPaint)
-
-                // my temporary code
                 canvas.drawText(dayLabel, x, mHeaderTextHeight + mHeaderRowPadding, mHeaderTextPaint)
             }
             startPixel += mWidthPerDay
         }
-        // Draw the header row texts START
     }
 
     /**
@@ -1349,7 +1358,7 @@ class WeekView : View {
                 val day = TimeUtils.today()
                 day.add(Calendar.DATE, dayNumber - 1)
                 val pixelsFromZero = y - mCurrentOrigin.y - mHeaderHeight
-                -(mHeaderRowPadding * 2).toFloat() - mTimeTextHeight / 2 - mHeaderMarginBottom
+                -(mHeaderRowPadding * 2).toFloat() - mNameTextHeight / 2 - mHeaderMarginBottom
                 val hour = (pixelsFromZero / mHourHeight).toInt()
                 val minute = (60 * (pixelsFromZero - hour * mHourHeight) / mHourHeight).toInt()
                 day.add(Calendar.HOUR, hour)
@@ -1375,12 +1384,12 @@ class WeekView : View {
 
                     // Calculate top.
                     var top = mEventRects[i].top
-                    top = mHourHeight.toFloat() * 24f * top / 1440 + mCurrentOrigin.y + mHeaderHeight + mHeaderMarginBottom + mTimeTextHeight / 2 + mEventMarginVertical.toFloat() + DISTANCE_FROM_TOP
+                    top = mHourHeight.toFloat() * NumberStaff * top / 1440 + mCurrentOrigin.y + mHeaderHeight + mHeaderMarginBottom + mNameTextHeight / 2 + mEventMarginVertical.toFloat() + DISTANCE_FROM_TOP
                     top += mEventSeparatorWidth
 
                     // Calculate bottom.
                     var bottom = mEventRects[i].bottom
-                    bottom = mHourHeight.toFloat() * 24f * bottom / 1440 + mCurrentOrigin.y + mHeaderHeight + mHeaderMarginBottom + mTimeTextHeight / 2 - mEventMarginVertical + DISTANCE_FROM_TOP
+                    bottom = mHourHeight.toFloat() * NumberStaff * bottom / 1440 + mCurrentOrigin.y + mHeaderHeight + mHeaderMarginBottom + mNameTextHeight / 2 - mEventMarginVertical + DISTANCE_FROM_TOP
                     bottom -= mEventSeparatorWidth
 
                     // Calculate left and right.
@@ -1396,7 +1405,7 @@ class WeekView : View {
                             left < width &&
                             top < height &&
                             right > mHeaderColumnWidth &&
-                            bottom > mHeaderHeight + mTimeTextHeight / 2 + mHeaderMarginBottom) {
+                            bottom > mHeaderHeight + mNameTextHeight / 2 + mHeaderMarginBottom) {
                         if (bottom - top < 4) {
                             top -= 4 - bottom + top
                         }
@@ -1434,7 +1443,7 @@ class WeekView : View {
                 if (mEventRects[i].event.allDay && day.isTheSameDay(mEventRects[i].event.startCalendar)) {
                     if (day.isTheSameDay(mEventRects[i].originalEvent.startCalendar)) {
                         // Calculate top.
-                        var top: Float = (if (mNeedToScrollAllDayEvents) mCurrentOrigin.y else 0F) + (mHeaderRowPadding * 2).toFloat() + mTimeTextHeight / 2 + mEventMarginVertical.toFloat() + mHeaderRowPadding.toFloat()
+                        var top: Float = (if (mNeedToScrollAllDayEvents) mCurrentOrigin.y else 0F) + (mHeaderRowPadding * 2).toFloat() + mNameTextHeight / 2 + mEventMarginVertical.toFloat() + mHeaderRowPadding.toFloat()
                         var validPosition = 0
                         while (mPositionFilled[columnIndex].contains(validPosition)) {
                             validPosition++
@@ -1565,7 +1574,7 @@ class WeekView : View {
      * @return
      */
     private fun drawMoreAllDayEvents(startFromPixel: Float, eventIndex: Int, columnIndex: Int, canvas: Canvas): Boolean {
-        var top = (mHeaderRowPadding * 2).toFloat() + mTimeTextHeight / 2 + mEventMarginVertical.toFloat() + mHeaderRowPadding.toFloat()
+        var top = (mHeaderRowPadding * 2).toFloat() + mNameTextHeight / 2 + mEventMarginVertical.toFloat() + mHeaderRowPadding.toFloat()
         top += ((mMaxVisibleAllDayEventNum - 1) * mAllDayEventItemHeight)
         // Calculate bottom.
         val bottom = top + mAllDayEventItemHeight - 4
@@ -1830,7 +1839,7 @@ class WeekView : View {
                 normalEventList.add(event)
             }
         }
-        Collections.sort(normalEventList) { event1, event2 ->
+        normalEventList.sortWith(Comparator { event1, event2 ->
             val start1 = event1.startCalendar.timeInMillis
             val start2 = event2.startCalendar.timeInMillis
             var comparator = if (start1 > start2) 1 else if (start1 < start2) -1 else 0
@@ -1839,8 +1848,8 @@ class WeekView : View {
                 val end2 = event2.endCalendar.timeInMillis
                 comparator = if (end1 > end2) 1 else if (end1 < end2) -1 else 0
             }
-            return@sort comparator
-        }
+            return@Comparator comparator
+        })
         normalEventList.addAll(allDayEventList)
         return normalEventList
     }
@@ -2234,20 +2243,20 @@ class WeekView : View {
      *
      * @param hour The hour to scroll to in 24-hour format. Supported values are 0-24.
      */
-    fun goToHour(hour: Double) {
+    fun goToStaff(position: Double) {
         if (mAreDimensionsInvalid) {
-            mScrollToHour = hour
+            mScrollToHour = position
             return
         }
 
         var verticalOffset = 0
-        if (hour > 24)
-            verticalOffset = mHourHeight * 24
-        else if (hour > 0)
-            verticalOffset = (mHourHeight * hour).toInt()
+        if (position > NumberStaff)
+            verticalOffset = mHourHeight * NumberStaff
+        else if (position > 0)
+            verticalOffset = (mHourHeight * position).toInt()
 
-        if (verticalOffset > (mHourHeight * 24 - height).toFloat() + mHeaderHeight + mHeaderMarginBottom)
-            verticalOffset = ((mHourHeight * 24 - height).toFloat() + mHeaderHeight + mHeaderMarginBottom).toInt()
+        if (verticalOffset > (mHourHeight * NumberStaff - height).toFloat() + mHeaderHeight + mHeaderMarginBottom)
+            verticalOffset = ((mHourHeight * NumberStaff - height).toFloat() + mHeaderHeight + mHeaderMarginBottom).toInt()
 
         mCurrentOrigin.y = (-verticalOffset).toFloat()
         invalidate()
