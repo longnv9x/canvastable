@@ -13,8 +13,12 @@
         <attr name="hourHeight" format="dimension" />
         <attr name="minHourHeight" format="dimension" />
         <attr name="maxHourHeight" format="dimension" />
-        <attr name="textSize" format="dimension" />
-        <attr name="textSizeTime" format="dimension" />
+        <attr name="textSizeDay" format="dimension" />
+        <attr name="textSizeEventOfDay" format="dimension" />
+        <attr name="textSizeNameStaff" format="dimension" />
+        <attr name="textSizeMemo" format="dimension" />
+        <attr name="textSizeTeam" format="dimension" />
+        <attr name="textSizeDepartment" format="dimension" />
         <attr name="eventTextSize" format="dimension" />
         <attr name="headerColumnPadding" format="dimension" />
         <attr name="headerRowPadding" format="dimension" />
@@ -33,6 +37,7 @@
         <attr name="eventTextColor" format="color" />
         <attr name="eventPadding" format="dimension" />
         <attr name="headerColumnBackground" format="color" />
+        <attr name="departmentColumnBackground" format="color" />
         <attr name="overlappingEventGap" format="dimension" />
         <attr name="eventMarginVertical" format="dimension" />
         <attr name="xScrollingSpeed" format="float" />

@@ -29,6 +29,6 @@
         app:noOfVisibleDays="3"
         app:showDistinctWeekendColor="true"
         app:showNowLine="false"
-        app:todayBackgroundColor="#20ffff00"/>
+        app:todayBackgroundColor="#20ffff00" />
 
 </FrameLayout>
