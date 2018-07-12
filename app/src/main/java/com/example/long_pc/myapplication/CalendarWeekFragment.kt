@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.example.long_pc.myapplication.model.EventSummary
+import com.example.long_pc.myapplication.model.SettingCalendar
 import java.util.*
 
 
@@ -40,7 +41,6 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
         get() {
             return Calendar.getInstance()
         }
-
     //region Week view events
     private val eventClickListener: WeekView.EventClickListener = object : WeekView.EventClickListener {
         override fun onEventClick(event: EventSummary, eventRect: RectF) {
@@ -68,10 +68,10 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
 
     private val monthChangeListener: MonthLoader.MonthChangeListener = object : MonthLoader.MonthChangeListener {
         override fun onMonthChange(periodIndex: Int): List<EventSummary> {
-//            if (presenter.currentTime == null) {
-//                presenter.currentTime = weekView.mFirstVisibleDay
-//            }
-//            presenter.checkToGetEventFromApi(periodIndex)
+            if (presenter.currentTime == null) {
+                presenter.currentTime = weekView.mFirstVisibleDay
+            }
+           // presenter.checkToGetEventFromApi(periodIndex)
             return presenter.getEventFromCache(periodIndex)
         }
     }
@@ -99,6 +99,7 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        presenter.attachView(this)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -122,7 +123,7 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
     }
 
     private fun initData() {
-//        presenter.loadCalendarSetting()
+        presenter.loadCalendarSetting(SettingCalendar())
     }
 
     /**
@@ -172,7 +173,7 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
         val today = Calendar.getInstance()
 
         if (weekView.mFirstVisibleDay == null) {
-          //  presenter.currentFocusedDay = today.time
+            presenter.currentFocusedDay = today.time
             return
         }
 
@@ -228,5 +229,4 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
     override fun showEvents() {
         weekView.notifyDataSetChanged()
     }
-
 }

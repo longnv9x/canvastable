@@ -1,6 +1,7 @@
 package com.example.long_pc.myapplication
 
 import com.example.long_pc.myapplication.model.EventSummary
+import com.example.long_pc.myapplication.model.SettingCalendar
 import java.util.*
 
 
@@ -45,7 +46,7 @@ class CalendarWeekPresenter {
      */
     var currentFocusedDay: Date? = null
 
-
+    var calendarSetting: SettingCalendar = SettingCalendar()
     fun attachView(view: CalendarWeekView) {
         this.view = view
     }
@@ -88,7 +89,7 @@ class CalendarWeekPresenter {
         if (loadingStatus == LoadingStatus.IDLE || fetchedPeriod != period) {
             loadingStatus = LoadingStatus.WAITING
             fetchedPeriod = period
-           //view?.requestApi(currentTime!!.time, day.time)
+           // view?.requestApi(currentTime!!.time, day.time)
         } else if (loadingStatus == LoadingStatus.COMPLETED) {
             loadingStatus = LoadingStatus.IDLE
         }
@@ -112,7 +113,7 @@ class CalendarWeekPresenter {
         endTime.set(endPeriod / 12, endPeriod % 12, 1)
         endTime.add(Calendar.DATE, 3)
 
-        return  listOf()
+        return listOf()
     }
 
     /**
@@ -126,4 +127,10 @@ class CalendarWeekPresenter {
         }
     }
 
+    fun loadCalendarSetting(setting: SettingCalendar? = null) {
+        if (setting != null) {
+            this.calendarSetting = setting
+        }
+        view?.changeSetting(this.calendarSetting.fontSize.toFloat(), this.calendarSetting.startWeek)
+    }
 }

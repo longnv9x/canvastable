@@ -15,6 +15,7 @@ object TimeUtils {
     private val cacheDateFormat: HashMap<String, SimpleDateFormat> by lazy {
         HashMap<String, SimpleDateFormat>()
     }
+
     fun getDateFormat(pattern: String = ISO_8601_DATE_TIME_FORMAT): SimpleDateFormat {
         if (cacheDateFormat[pattern] == null) {
             val format = SimpleDateFormat(pattern, Locale.getDefault())
@@ -23,6 +24,7 @@ object TimeUtils {
 
         return cacheDateFormat[pattern]!!
     }
+
     fun today(): Calendar {
         val today = Calendar.getInstance()
         today.set(Calendar.HOUR_OF_DAY, 0)
@@ -43,9 +45,11 @@ object TimeUtils {
         endTime.set(c2.timeInMillis - 1)
         return (if (shouldPlusOneDay) 1 else 0) + Time.getJulianDay(endTime.toMillis(true), endTime.gmtoff) - Time.getJulianDay(startTime.toMillis(true), startTime.gmtoff)
     }
+
     fun toWeekViewPeriodIndex(instance: Calendar): Double {
         return (instance.get(Calendar.YEAR) * 12).toDouble() + instance.get(Calendar.MONTH).toDouble() + (instance.get(Calendar.DAY_OF_MONTH) - 1) / 30.0
     }
+
     fun getFirstDayOfMonth(currentTime: Date?): Calendar {
         val calendar = Calendar.getInstance()
         calendar.time = currentTime
@@ -53,8 +57,36 @@ object TimeUtils {
 
         return calendar
     }
+
+    fun toCalendar(date: Date): Calendar {
+        val calendar = Calendar.getInstance()
+        calendar.time = date
+        return calendar
+    }
 }
+
 fun Calendar.isTheSameDay(calendar: Calendar): Boolean {
     return this.get(Calendar.YEAR) == calendar.get(Calendar.YEAR)
             && this.get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR)
+}
+
+fun Calendar.isTheSameDay(date: Date): Boolean {
+    return this.get(Calendar.YEAR) == TimeUtils.toCalendar(date).get(Calendar.YEAR)
+            && this.get(Calendar.DAY_OF_YEAR) == TimeUtils.toCalendar(date).get(Calendar.DAY_OF_YEAR)
+}
+
+fun Date.isTheSameDay(calendar: Calendar): Boolean {
+    return TimeUtils.toCalendar(this).get(Calendar.YEAR) == calendar.get(Calendar.YEAR)
+            && TimeUtils.toCalendar(this).get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR)
+}
+
+inline fun <E> Collection<E>.contains(predicate: (e: E) -> Boolean): Boolean {
+    this.forEach { element ->
+        val hasContain = predicate.invoke(element)
+        if (hasContain) {
+            return true
+        }
+    }
+
+    return false
 }
