@@ -8,8 +8,9 @@ import android.view.View
 import android.view.ViewGroup
 import butterknife.BindView
 import butterknife.ButterKnife
-import com.example.long_pc.myapplication.model.EventSummary
 import com.example.long_pc.myapplication.model.SettingCalendar
+import com.example.long_pc.myapplication.model.ShiftData
+import com.example.long_pc.myapplication.model.ShiftItem
 import java.util.*
 
 
@@ -41,46 +42,33 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
         get() {
             return Calendar.getInstance()
         }
+
     //region Week view events
     private val eventClickListener: WeekView.EventClickListener = object : WeekView.EventClickListener {
-        override fun onEventClick(event: EventSummary, eventRect: RectF) {
-            when (event.calendarType) {
-                DJCalendarEnum.Type.MEETING_DECIDED -> {
-                    val isFixed = event.end.after(Date())
-//                    if (isFixed) {
-//                        startActivityIgnoreNetwork(ConfirmedMeetingActivity.createIntent(context, event.meetingId))
-//                    } else {
-//                        startActivityIgnoreNetwork(FinishedMeetingDetailActivity.createIntent(context, event.meetingId
-//                                ?: "", false))
-//                    }
-                }
-                DJCalendarEnum.Type.RQ_MEETING_MEDIATOR -> {
-                    val isFixed = event.end.after(Date())
-                 //   startActivityIgnoreNetwork(FinishedMeetingDetailActivity.createIntent(context, event.meetingId
-                          //  ?: "", false, Pair(true, isFixed)))
-                }
-                else -> {
-                   // startActivityForResultIgnoreNetwork(EventDetailActivity.createIntent(context, event), CalendarFragment.REQUEST_DETAIL_EVENT)
-                }
-            }
+        override fun onEventClick(event: ShiftItem, eventRect: RectF) {
+
         }
     }
 
     private val monthChangeListener: MonthLoader.MonthChangeListener = object : MonthLoader.MonthChangeListener {
-        override fun onMonthChange(periodIndex: Int): List<EventSummary> {
+        override fun onDayChange(firstDay: Date, lastDay: Date): ShiftData? {
             if (presenter.currentTime == null) {
                 presenter.currentTime = weekView.mFirstVisibleDay
             }
-           // presenter.checkToGetEventFromApi(periodIndex)
+            return presenter.getEventFromCache(firstDay,lastDay)
+        }
+
+        override fun onMonthChange(periodIndex: Int): ShiftData? {
+            if (presenter.currentTime == null) {
+                presenter.currentTime = weekView.mFirstVisibleDay
+            }
             return presenter.getEventFromCache(periodIndex)
         }
     }
 
     private val onTitleChangedListener: WeekView.TitleChangeListener = object : WeekView.TitleChangeListener {
         override fun onTitleChange(calendar: Calendar) {
-//            presenter.currentTime = calendar
-//            title = String.format(screenTitle, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1)
-//            parentView?.updateTitle(CalendarFragment.CALENDAR_WEEK_TAB, title)
+            presenter.currentTime = calendar
         }
     }
 
@@ -124,6 +112,7 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
 
     private fun initData() {
         presenter.loadCalendarSetting(SettingCalendar())
+        focusToday()
     }
 
     /**
@@ -228,5 +217,9 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
 
     override fun showEvents() {
         weekView.notifyDataSetChanged()
+    }
+
+    override fun getEventFromCache(startTime: Date, endTime: Date): ShiftData? {
+        return presenter.getEventFromCacheForWeek(startTime, endTime)
     }
 }

@@ -1,6 +1,7 @@
 package com.example.long_pc.myapplication
 
-import com.example.long_pc.myapplication.model.EventSummary
+import com.example.long_pc.myapplication.model.ShiftData
+import java.util.*
 
 interface WeekViewLoader {
 
@@ -9,5 +10,7 @@ interface WeekViewLoader {
      * @param periodIndex the period to load
      * @return A list with the events of this period
      */
-    fun onLoad(periodIndex: Int): List<EventSummary>
+    fun onLoad(periodIndex: Int): ShiftData?
+
+    fun onLoad(firstDay: Date, lastDay: Date): ShiftData?
 }

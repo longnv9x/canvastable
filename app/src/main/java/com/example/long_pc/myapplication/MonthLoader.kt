@@ -1,10 +1,14 @@
 package com.example.long_pc.myapplication
 
-import com.example.long_pc.myapplication.model.EventSummary
+import com.example.long_pc.myapplication.model.ShiftData
+import java.util.*
 
 class MonthLoader(private var onMonthChangeListener: MonthChangeListener) : WeekViewLoader {
+    override fun onLoad(firstDay: Date, lastDay: Date): ShiftData? {
+       return onMonthChangeListener.onDayChange(firstDay,lastDay)
+    }
 
-    override fun onLoad(periodIndex: Int): List<EventSummary> {
+    override fun onLoad(periodIndex: Int): ShiftData? {
         return onMonthChangeListener.onMonthChange(periodIndex)
     }
 
@@ -15,6 +19,7 @@ class MonthLoader(private var onMonthChangeListener: MonthChangeListener) : Week
          * **That's why you can have three times the same event at the same place if you mess up with the configuration**
          * @return a list of the events happening **during the specified month**.
          */
-        fun onMonthChange(periodIndex: Int): List<EventSummary>
+        fun onMonthChange(periodIndex: Int): ShiftData?
+        fun onDayChange(firstDay: Date, lastDay: Date): ShiftData?
     }
 }

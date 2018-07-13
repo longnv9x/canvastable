@@ -80,6 +80,13 @@ fun Date.isTheSameDay(calendar: Calendar): Boolean {
             && TimeUtils.toCalendar(this).get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR)
 }
 
+fun Date.getDaysAgo(daysAgo: Int): Date {
+    val calendar = Calendar.getInstance()
+    calendar.add(Calendar.DAY_OF_YEAR, daysAgo)
+
+    return calendar.time
+}
+
 inline fun <E> Collection<E>.contains(predicate: (e: E) -> Boolean): Boolean {
     this.forEach { element ->
         val hasContain = predicate.invoke(element)

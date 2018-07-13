@@ -1,7 +1,10 @@
 package com.example.long_pc.myapplication
 
-import com.example.long_pc.myapplication.model.EventSummary
-import com.example.long_pc.myapplication.model.SettingCalendar
+import android.graphics.Color
+import android.util.Log
+import com.example.long_pc.myapplication.model.*
+import jp.drjoy.app.domain.model.shift.Memo
+import jp.drjoy.app.domain.model.shift.Shift
 import java.util.*
 
 
@@ -89,7 +92,7 @@ class CalendarWeekPresenter {
         if (loadingStatus == LoadingStatus.IDLE || fetchedPeriod != period) {
             loadingStatus = LoadingStatus.WAITING
             fetchedPeriod = period
-           // view?.requestApi(currentTime!!.time, day.time)
+            // view?.requestApi(currentTime!!.time, day.time)
         } else if (loadingStatus == LoadingStatus.COMPLETED) {
             loadingStatus = LoadingStatus.IDLE
         }
@@ -101,21 +104,27 @@ class CalendarWeekPresenter {
      * @param periodIndex the period to load
      * @return A list of event
      */
-    fun getEventFromCache(periodIndex: Int): List<EventSummary> {
+    fun getEventFromCache(periodIndex: Int): ShiftData? {
         val startTime: Calendar = Calendar.getInstance()
         val endTime: Calendar = Calendar.getInstance()
 
         val endPeriod = periodIndex + 1
 
         startTime.set(periodIndex / 12, periodIndex % 12, 1)
-        startTime.add(Calendar.DATE, -3)
+        startTime.add(Calendar.DAY_OF_MONTH, -4)
 
         endTime.set(endPeriod / 12, endPeriod % 12, 1)
-        endTime.add(Calendar.DATE, 3)
+        endTime.add(Calendar.DAY_OF_MONTH, 4)
 
-        return listOf()
+        return view?.getEventFromCache(startTime.time, endTime.time)
     }
 
+    fun getEventFromCache(firstDay: Date, lastDay: Date): ShiftData? {
+        val startTime: Date = firstDay.getDaysAgo(0)
+        val endTime: Date = lastDay.getDaysAgo(5)
+
+        return view?.getEventFromCache(startTime, endTime)
+    }
     /**
      * Get setting to setup week view
      */
@@ -132,5 +141,81 @@ class CalendarWeekPresenter {
             this.calendarSetting = setting
         }
         view?.changeSetting(this.calendarSetting.fontSize.toFloat(), this.calendarSetting.startWeek)
+    }
+
+    fun getEventFromCacheForWeek(startTime: Date, endTime: Date): ShiftData? {
+        Log.e("day","startTime --${startTime.day} endTime ${endTime.day}")
+        val arrShift = arrayListOf<Shift>()
+        val arrMemo = arrayListOf<Memo>()
+        var tempDay = startTime
+        var i = 0
+        while (tempDay.time < endTime.time) {
+            when {
+                i % 3 == 0 -> arrMemo.add(Memo().apply {
+                    this.publicNote = "publicNote"
+                    this.targetDate = tempDay
+                })
+                else -> arrMemo.add(Memo().apply {
+                    this.targetDate = tempDay
+                    this.publicNote = "publicNote"
+                    this.privateNote = "privateNote"
+                })
+            }
+            i++
+            tempDay=  tempDay.getDaysAgo(i)
+        }
+        (0..10).forEach { pos ->
+            arrShift.add(Shift().apply {
+                departmentId = "departmentId$pos"
+                officeUserId = "officeUserId$pos"
+                userName = "userName$pos"
+                teamDisplayOrder = "teamDisplayOrder"
+                memberDisplayOrder = "memberDisplayOrder"
+                isGuest = false
+                guestDepartmentName = "guestDepartmentName"
+                memberName = "Name $pos"
+                teamColor = randomColor()
+                teamId = "teamId$pos"
+                teamShortName = "team"
+                shiftList = arrayListOf()
+                tempDay = startTime
+                var j = 0
+                while (tempDay.time < endTime.time) {
+                    shiftList!!.add(ShiftItem().apply {
+                        officeUserId = "officeUserId$pos"
+                        date = tempDay
+                        morning = Session().apply {
+                            id = "id $pos"
+                            departmentId = "departmentId$pos"
+                            category = "category$pos"
+                            shortName = "shortName$pos"
+                            name = "name$pos"
+                            color = randomColor()
+                            editable = true
+                        }
+                    })
+                    j++
+                    tempDay=  tempDay.getDaysAgo(j)
+                }
+            })
+        }
+
+        return ShiftData().apply {
+            departmentId = "departmentId"
+            isPublished = true
+            memos = arrMemo
+            shifts = arrShift
+        }
+    }
+
+    private fun randomColor(): Int {
+        val str = "abcdef0123456789"
+        var color = "#"
+
+        for (i in 1..6) {
+            color += str[((Math.random() * str.length).toInt())]
+        }
+
+        return Color.parseColor(color)
     }
 }
