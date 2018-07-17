@@ -19,6 +19,7 @@
         <attr name="textSizeMemo" format="dimension" />
         <attr name="textSizeTeam" format="dimension" />
         <attr name="textSizeDepartment" format="dimension" />
+        <attr name="textSizeTitleCell" format="dimension" />
         <attr name="eventTextSize" format="dimension" />
         <attr name="headerColumnPadding" format="dimension" />
         <attr name="headerRowPadding" format="dimension" />

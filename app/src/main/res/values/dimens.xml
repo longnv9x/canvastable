@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--AP4001 START-->
+    <dimen name="ap4001_day_header_height">35dp</dimen>
+    <dimen name="ap4001_range_date_size_plan_preview">10sp</dimen>
+    <dimen name="ap4001_register_image_size_plan_preview">40dp</dimen>
+    <dimen name="ap4001_preview_item_height">65dp</dimen>
+    <dimen name="ap4001_text_size_week_bar_menu">23sp</dimen>
+    <dimen name="ap4001_text_size_month_bar_menu">23sp</dimen>
+    <dimen name="ap4001_text_size_shift_bar_menu">23sp</dimen>
+    <!--AP4001 START-->
+
+    <!-- TextSize Smoke Test 5/22 Start-->
+    <dimen name="text_size_1">17sp</dimen>   <!-- Header title text -->
+    <dimen name="text_size_2">15sp</dimen>   <!-- Subtitle -->
+    <dimen name="text_size_3">13sp</dimen>   <!-- Regular text, normal text -->
+    <dimen name="text_size_4">11sp</dimen>   <!-- Subtext -->
+    <dimen name="text_size_5">11sp</dimen>   <!-- Footer -->
+    <dimen name="text_size_6">13sp</dimen>   <!-- Input character -->
+    <!-- TextSize Smoke Test 5/22 End-->
+</resources>

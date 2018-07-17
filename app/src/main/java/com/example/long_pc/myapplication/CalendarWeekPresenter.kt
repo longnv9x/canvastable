@@ -119,11 +119,11 @@ class CalendarWeekPresenter {
         return view?.getEventFromCache(startTime.time, endTime.time)
     }
 
-    fun getEventFromCache(firstDay: Date, lastDay: Date): ShiftData? {
-        val startTime: Date = firstDay.getDaysAgo(0)
-        val endTime: Date = lastDay.getDaysAgo(5)
-
-        return view?.getEventFromCache(startTime, endTime)
+    fun getEventFromCache(firstDay: Calendar): ShiftData? {
+        val startTime: Calendar = firstDay.clone() as Calendar
+        val endTime: Calendar= firstDay.clone() as Calendar
+        endTime.add(Calendar.DAY_OF_MONTH,3)
+        return view?.getEventFromCache(startTime.time, endTime.time)
     }
     /**
      * Get setting to setup week view
@@ -149,10 +149,13 @@ class CalendarWeekPresenter {
         val arrMemo = arrayListOf<Memo>()
         var tempDay = startTime
         var i = 0
-        while (tempDay.time < endTime.time) {
+        while (tempDay.time <= endTime.time) {
             when {
                 i % 3 == 0 -> arrMemo.add(Memo().apply {
                     this.publicNote = "publicNote"
+                    this.targetDate = tempDay
+                })
+                i % 2 == 0 -> arrMemo.add(Memo().apply {
                     this.targetDate = tempDay
                 })
                 else -> arrMemo.add(Memo().apply {
@@ -162,9 +165,9 @@ class CalendarWeekPresenter {
                 })
             }
             i++
-            tempDay=  tempDay.getDaysAgo(i)
+            tempDay=  tempDay.getDaysAgo(1)
         }
-        (0..10).forEach { pos ->
+        (0..100).forEach { pos ->
             arrShift.add(Shift().apply {
                 departmentId = "departmentId$pos"
                 officeUserId = "officeUserId$pos"
@@ -174,13 +177,12 @@ class CalendarWeekPresenter {
                 isGuest = false
                 guestDepartmentName = "guestDepartmentName"
                 memberName = "Name $pos"
-                teamColor = randomColor()
+                teamColor = Color.GREEN
                 teamId = "teamId$pos"
                 teamShortName = "team"
                 shiftList = arrayListOf()
                 tempDay = startTime
-                var j = 0
-                while (tempDay.time < endTime.time) {
+                while (tempDay.time <= endTime.time) {
                     shiftList!!.add(ShiftItem().apply {
                         officeUserId = "officeUserId$pos"
                         date = tempDay
@@ -189,13 +191,30 @@ class CalendarWeekPresenter {
                             departmentId = "departmentId$pos"
                             category = "category$pos"
                             shortName = "shortName$pos"
-                            name = "name$pos"
+                            name = if (pos%3==0) "morning" else "afternoon"
+                            color = randomColor()
+                            editable = true
+                        }
+                        afternoon = Session().apply {
+                            id = "id $pos"
+                            departmentId = "departmentId$pos"
+                            category = "category$pos"
+                            shortName = "shortName$pos"
+                            name = if (pos%2==0) "morning" else "afternoon"
+                            color = randomColor()
+                            editable = true
+                        }
+                        night = Session().apply {
+                            id = "id $pos"
+                            departmentId = "departmentId$pos"
+                            category = "category$pos"
+                            shortName = "shortName$pos"
+                            name = if (pos%4==0) "morning" else "afternoon"
                             color = randomColor()
                             editable = true
                         }
                     })
-                    j++
-                    tempDay=  tempDay.getDaysAgo(j)
+                    tempDay=  tempDay.getDaysAgo(1)
                 }
             })
         }

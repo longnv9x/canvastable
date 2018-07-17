@@ -1,34 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?><!-- AP4002 カレンダー(週表示) -->
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/coordinatorLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:animateLayoutChanges="true"
-    android:orientation="vertical">
+    android:background="@android:color/white">
 
-    <com.example.long_pc.myapplication.WeekView
-        android:id="@+id/weekView"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:dayBackgroundColor="#ffffff"
-        app:eventCornerRadius="1.75dp"
-        app:eventPadding="2.5dp"
-        app:eventTextColor="@android:color/white"
-        app:headerColumnBackground="#ffffffff"
-        app:headerColumnPadding="8dp"
-        app:headerColumnTextColor="@color/common_text_primary"
-        app:headerColumnTextColorSaturday="#4991DC"
-        app:headerColumnTextColorSunday="#D11D29"
-        app:headerColumnTextColorTime="@color/common_text_third"
-        app:headerRowBackgroundColor="#cccccc"
-        app:headerRowPadding="4dp"
-        app:horizontalFlingEnabled="true"
-        app:hourHeight="30dp"
-        app:hourSeparatorColor="#cccccc"
-        app:noOfVisibleDays="3"
-        app:showDistinctWeekendColor="true"
-        app:showNowLine="false"
-        app:todayBackgroundColor="#20ffff00" />
+        android:layout_height="match_parent">
+        <com.example.long_pc.myapplication.WeekView
+            android:id="@+id/weekView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:dayBackgroundColor="#ffffff"
+            app:eventCornerRadius="1.75dp"
+            app:eventPadding="2.5dp"
+            app:eventTextColor="@android:color/white"
+            app:headerColumnBackground="#ffffffff"
+            app:headerColumnPadding="8dp"
+            app:headerColumnTextColor="@color/common_text_primary"
+            app:headerColumnTextColorSaturday="#4991DC"
+            app:headerColumnTextColorSunday="#D11D29"
+            app:headerColumnTextColorTime="@color/common_text_third"
+            app:headerRowBackgroundColor="#cccccc"
+            app:headerRowPadding="4dp"
+            app:horizontalFlingEnabled="true"
+            app:hourHeight="30dp"
+            app:hourSeparatorColor="#cccccc"
+            app:noOfVisibleDays="3"
+            app:showDistinctWeekendColor="true"
+            app:showNowLine="false"
+            app:todayBackgroundColor="#20ffff00" />
+    </LinearLayout>
 
-</FrameLayout>
+    <RelativeLayout
+        android:id="@+id/bs_plan_preview"
+        android:layout_width="match_parent"
+        android:layout_height="130dp"
+        android:clipToPadding="true"
+        app:layout_behavior="com.example.long_pc.myapplication.NonDraggingBottomSheet"
+        tools:visibility="gone">
+
+        <View
+            android:id="@+id/view_shadow"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:background="@drawable/shadow"
+            android:rotation="180"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_plan_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@+id/view_shadow"
+            android:background="@android:color/white"
+            app:layoutManager="android.support.v7.widget.LinearLayoutManager"
+            tools:listitem="@layout/ap4001_plan_preview_item"/>
+
+        <TextView
+            android:id="@+id/tv_empty_preview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="Text"
+            android:visibility="invisible"/>
+
+    </RelativeLayout>
+</android.support.design.widget.CoordinatorLayout>

@@ -65,6 +65,7 @@ class WeekView : View {
     private val mDepartmentPaint: Paint by lazy { Paint(Paint.ANTI_ALIAS_FLAG) }
     private var mDepartmentTextWidth: Float = 0F
     private var mDepartmentTextHeight: Float = 0F
+    private var mTitleTextCellHeight: Float = 0F
     private val mHeaderLinePaint: Paint by lazy { Paint(Paint.ANTI_ALIAS_FLAG) }
     private lateinit var mGestureDetector: GestureDetectorCompat
     private var mScroller: OverScroller? = null
@@ -89,7 +90,7 @@ class WeekView : View {
      * Width of the first column (time 01:00 - 23:00)
      */
     private var mHeaderColumnWidth: Float = 0F
-    private var mCurentDepartment: String? = null
+    private var mCurrentDepartment: String? = null
     private var mCurrentPeriodEvents: ShiftData? = null
     private val mEventTextPaint: TextPaint by lazy { TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.LINEAR_TEXT_FLAG) }
     private val mHeaderColumnBackgroundPaint: Paint by lazy { Paint() }
@@ -110,6 +111,7 @@ class WeekView : View {
     private var mAllDayTextWidth: Float = 0F
     private var mAllDayTextHeight: Float = 0F
     private var mEventRects: ArrayList<EventRect> = ArrayList()
+    private var mEventRectDepartment: RectF? = null
     private var mMemos: ArrayList<Memo> = ArrayList()
     private var mShiftItems: ArrayList<ArrayList<ShiftItem>> = ArrayList()
     private var mStaffs: ArrayList<Staff> = ArrayList()
@@ -187,7 +189,7 @@ class WeekView : View {
             invalidate()
         }
 
-    private var mTextSizeDepartment = 16
+    private var mTextSizeDepartment = 14
         set(value) {
             field = value
             mDepartmentPaint.textSize = mTextSizeDepartment.toFloat()
@@ -210,6 +212,13 @@ class WeekView : View {
         set(value) {
             field = value
             mHeaderTextEvenOfDayPaint.textSize = mTextSizeEvenOfDay.toFloat()
+            invalidate()
+        }
+
+    private var mTextSizeTitleCell = 10
+        set(value) {
+            field = value
+            mTitleCellPaint.textSize = mTextSizeTitleCell.toFloat()
             invalidate()
         }
 
@@ -237,7 +246,7 @@ class WeekView : View {
     private var mHeaderSundayColumnTextColor = Color.BLACK
     private var mHeaderSaturdayColumnTextColor = Color.BLACK
     private var mHeaderColumnTextColorTime = Color.BLACK
-
+    var mScrollHorizontal: ScrollListener? = null
     /**
      * The number of visible days in a week.
      */
@@ -460,11 +469,9 @@ class WeekView : View {
 
     // Listeners.
     var mInitListener: InitListener? = null
-    var mEventClickListener: EventClickListener? = null
-    var mEventLongPressListener: EventLongPressListener? = null
     var mEventTouchListener: EventTouchListener? = null
-    //    var mEmptyViewClickListener: EmptyViewClickListener? = null
-//    var mEmptyViewLongPressListener: EmptyViewLongPressListener? = null
+    var mViewClickListener: ViewClickListener? = null
+    var mViewLongPressListener: ViewLongPressListener? = null
 
     /**
      * Event loaders define the  interval after which the events
@@ -509,6 +516,7 @@ class WeekView : View {
         }
 
         override fun onScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+            mScrollStateChangeListener?.onScrollSateChanged(true)
             when (mCurrentScrollDirection) {
                 Direction.NONE -> {
                     // Allow scrolling only in one direction.
@@ -559,6 +567,7 @@ class WeekView : View {
         }
 
         override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+            mScrollStateChangeListener?.onScrollSateChanged(false)
             if (mCurrentFlingDirection == Direction.LEFT && !mHorizontalFlingEnabled ||
                     mCurrentFlingDirection == Direction.RIGHT && !mHorizontalFlingEnabled ||
                     mCurrentFlingDirection == Direction.VERTICAL && !mVerticalFlingEnabled) {
@@ -585,65 +594,52 @@ class WeekView : View {
         }
 
         override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            if (e.x > mEventRectDepartment?.left!! && e.x < mEventRectDepartment?.right!! && e.y > mEventRectDepartment?.top!! && e.y < mEventRectDepartment?.bottom!!) {
+                Log.e("click", "Department")
+                mViewClickListener?.onDepartmentClick(mCurrentDepartment)
+                return super.onSingleTapConfirmed(e)
+            }
             for (rectF in mToggleList) {
                 if (e.x > rectF.left && e.x < rectF.right && e.y > rectF.top && e.y < rectF.bottom) {
-                    toggleAllDayEvents()
-                    playSoundEffect(SoundEffectConstants.CLICK)
+                    Log.e("click", "mToggleList")
                     return super.onSingleTapConfirmed(e)
                 }
             }
 
-            // If the tap was on an event then trigger the callback.
-            if (mEventClickListener != null) {
-                val reversedEventRects = mEventRects
-                for (eventRect in reversedEventRects) {
-                    if (e.y <= mHeaderHeight) {
-                        continue
-                    }
-                    if (eventRect.rectF != null && e.x > eventRect.rectF!!.left && e.x < eventRect.rectF!!.right && e.y > eventRect.rectF!!.top && e.y < eventRect.rectF!!.bottom) {
-                        // mEventClickListener?.onEventClick(eventRect.event, eventRect.rectF!!)
-                        playSoundEffect(SoundEffectConstants.CLICK)
-                        return super.onSingleTapConfirmed(e)
-                    }
+
+            val reversedEventRects = mEventRects
+            for (eventRect in reversedEventRects) {
+                if (e.y <= mHeaderHeight) {
+                    continue
+                }
+                if (eventRect.rectF != null && e.x > eventRect.rectF!!.left && e.x < eventRect.rectF!!.right && e.y > eventRect.rectF!!.top && e.y < eventRect.rectF!!.bottom) {
+                    Log.e("click", "eventRect   ")
+                    // draw background select cell
+                    drawBackgroundColumnRowWhenSelectCell(eventRect)
+                    mViewClickListener?.onEventClick(eventRect.event)
+                    return super.onSingleTapConfirmed(e)
                 }
             }
-
-            // If the tap was on in an empty space, then trigger the callback.
-//            if (mEmptyViewClickListener != null && e.x > mHeaderColumnWidth && e.y > mHeaderHeight + mHeaderMarginBottom) {
-//                val selectedTime = getTimeFromPoint(e.x, e.y)
-//                if (selectedTime != null) {
-//                    playSoundEffect(SoundEffectConstants.CLICK)
-//                    mEmptyViewClickListener?.onEmptyViewClicked(selectedTime)
-//                }
-//            }
 
             return super.onSingleTapConfirmed(e)
         }
 
         override fun onLongPress(e: MotionEvent) {
             super.onLongPress(e)
-
-            if (mEventLongPressListener != null) {
-                val reversedEventRects = mEventRects
-                //                Collections.reverse(reversedEventRects);
-                for (eventRect in reversedEventRects) {
-                    if (eventRect.rectF != null && e.x > eventRect.rectF!!.left && e.x < eventRect.rectF!!.right && e.y > eventRect.rectF!!.top && e.y < eventRect.rectF!!.bottom) {
-                        // mEventLongPressListener?.onEventLongPress(eventRect.event, eventRect.rectF!!)
-                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        return
-                    }
+            val reversedEventRects = mEventRects
+            for (eventRect in reversedEventRects) {
+                if (eventRect.rectF != null && e.x > eventRect.rectF!!.left && e.x < eventRect.rectF!!.right && e.y > eventRect.rectF!!.top && e.y < eventRect.rectF!!.bottom) {
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    return
                 }
             }
-
-            // If the tap was on in an empty space, then trigger the callback.
-//            if (mEmptyViewLongPressListener != null && e.x > mHeaderColumnWidth && e.y > mHeaderHeight + mHeaderMarginBottom) {
-//                val selectedTime = getTimeFromPoint(e.x, e.y)
-//                if (selectedTime != null) {
-//                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-//                    mEmptyViewLongPressListener?.onEmptyViewLongPress(selectedTime)
-//                }
-//            }
         }
+    }
+
+    var pairSelectCell: Pair<Date, String>? = null
+    private fun drawBackgroundColumnRowWhenSelectCell(eventRect: WeekView.EventRect) {
+        pairSelectCell = Pair(eventRect.event.date!!, eventRect.event.officeUserId!!)
+        notifyDataSetChanged()
     }
 
     constructor (context: Context) : this(context, null)
@@ -661,14 +657,13 @@ class WeekView : View {
             mFirstDayOfWeek = a.getInteger(R.styleable.WeekView_firstDayOfWeek, mFirstDayOfWeek)
             mHourHeight = a.getDimensionPixelSize(R.styleable.WeekView_hourHeight, mHourHeight)
             mMinHourHeight = a.getDimensionPixelSize(R.styleable.WeekView_minHourHeight, mMinHourHeight)
-//            mEffectiveMinHourHeight = mMinHourHeight
-//            mMaxHourHeight = a.getDimensionPixelSize(R.styleable.WeekView_maxHourHeight, mMaxHourHeight)
             mTextSizeDay = a.getDimensionPixelSize(R.styleable.WeekView_textSizeDay, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, mTextSizeDay.toFloat(), context.resources.displayMetrics).toInt())
             mTextSizeName = a.getDimensionPixelSize(R.styleable.WeekView_textSizeNameStaff, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, mTextSizeName.toFloat(), context.resources.displayMetrics).toInt())
             mTextSizeDepartment = a.getDimensionPixelSize(R.styleable.WeekView_textSizeDepartment, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, mTextSizeDepartment.toFloat(), context.resources.displayMetrics).toInt())
             mTextSizeMemo = a.getDimensionPixelSize(R.styleable.WeekView_textSizeMemo, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, mTextSizeMemo.toFloat(), context.resources.displayMetrics).toInt())
             mTextSizeTeam = a.getDimensionPixelSize(R.styleable.WeekView_textSizeTeam, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, mTextSizeTeam.toFloat(), context.resources.displayMetrics).toInt())
             mTextSizeEvenOfDay = a.getDimensionPixelSize(R.styleable.WeekView_textSizeEventOfDay, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, mTextSizeEvenOfDay.toFloat(), context.resources.displayMetrics).toInt())
+            mTextSizeTitleCell = a.getDimensionPixelSize(R.styleable.WeekView_textSizeEventOfDay, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, mTextSizeTitleCell.toFloat(), context.resources.displayMetrics).toInt())
             mHeaderColumnPadding = a.getDimensionPixelSize(R.styleable.WeekView_headerColumnPadding, mHeaderColumnPadding)
             mHeaderColumnTextColor = a.getColor(R.styleable.WeekView_headerColumnTextColor, mHeaderColumnTextColor)
             mHeaderColumnTextColorTime = a.getColor(R.styleable.WeekView_headerColumnTextColorTime, mHeaderColumnTextColorTime)
@@ -679,16 +674,9 @@ class WeekView : View {
             mHeaderRowPadding = a.getDimensionPixelSize(R.styleable.WeekView_headerRowPadding, mHeaderRowPadding)
             mHeaderRowBackgroundColor = a.getColor(R.styleable.WeekView_headerRowBackgroundColor, mHeaderRowBackgroundColor)
             mDayBackgroundColor = a.getColor(R.styleable.WeekView_dayBackgroundColor, mDayBackgroundColor)
-//            mFutureBackgroundColor = a.getColor(R.styleable.WeekView_futureBackgroundColor, mFutureBackgroundColor)
-//            mPastBackgroundColor = a.getColor(R.styleable.WeekView_pastBackgroundColor, mPastBackgroundColor)
-//            mFutureWeekendBackgroundColor = a.getColor(R.styleable.WeekView_futureWeekendBackgroundColor, mFutureBackgroundColor) // If not set, use the same color as in the week
-//            mPastWeekendBackgroundColor = a.getColor(R.styleable.WeekView_pastWeekendBackgroundColor, mPastBackgroundColor)
-//            mNowLineColor = a.getColor(R.styleable.WeekView_nowLineColor, mNowLineColor)
-//            mNowLineThickness = a.getDimensionPixelSize(R.styleable.WeekView_nowLineThickness, mNowLineThickness)
             mHourSeparatorColor = a.getColor(R.styleable.WeekView_hourSeparatorColor, mHourSeparatorColor)
             mTodayBackgroundColor = a.getColor(R.styleable.WeekView_todayBackgroundColor, mTodayBackgroundColor)
             mHourSeparatorHeight = a.getDimensionPixelSize(R.styleable.WeekView_hourSeparatorHeight, mHourSeparatorHeight)
-//            mTodayHeaderTextColor = a.getColor(R.styleable.WeekView_todayHeaderTextColor, mTodayHeaderTextColor)
             mEventTextSize = a.getDimensionPixelSize(R.styleable.WeekView_eventTextSize, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, mEventTextSize.toFloat(), context.resources.displayMetrics).toInt())
             mEventTextColor = a.getColor(R.styleable.WeekView_eventTextColor, mEventTextColor)
             mEventPadding = a.getDimensionPixelSize(R.styleable.WeekView_eventPadding, mEventPadding)
@@ -700,10 +688,8 @@ class WeekView : View {
             mEventCornerRadius = a.getDimensionPixelSize(R.styleable.WeekView_eventCornerRadius, mEventCornerRadius)
             mShowDistinctPastFutureColor = a.getBoolean(R.styleable.WeekView_showDistinctPastFutureColor, mShowDistinctPastFutureColor)
             mShowDistinctWeekendColor = a.getBoolean(R.styleable.WeekView_showDistinctWeekendColor, mShowDistinctWeekendColor)
-//            mShowNowLine = a.getBoolean(R.styleable.WeekView_showNowLine, mShowNowLine)
             mHorizontalFlingEnabled = a.getBoolean(R.styleable.WeekView_horizontalFlingEnabled, mHorizontalFlingEnabled)
             mVerticalFlingEnabled = a.getBoolean(R.styleable.WeekView_verticalFlingEnabled, mVerticalFlingEnabled)
-//            mAllDayEventHeight = a.getDimensionPixelSize(R.styleable.WeekView_allDayEventHeight, mAllDayEventHeight)
             mScrollDuration = a.getInt(R.styleable.WeekView_scrollDuration, mScrollDuration)
         } finally {
             a.recycle()
@@ -787,7 +773,7 @@ class WeekView : View {
 
         mDepartmentPaint.textAlign = Paint.Align.CENTER
         mDepartmentPaint.color = mDepartmentTextColor
-        mCurentDepartment = "救急救命科"
+        mCurrentDepartment = "救急救命科"
         mDepartmentPaint.getTextBounds("00 PM", 0, "00 PM".length, rect)
         mDepartmentTextHeight = rect.height().toFloat()
         mDepartmentBackgroundPaint.color = mDepartmentBackgroundColor
@@ -797,7 +783,7 @@ class WeekView : View {
         goToDate(today)
         val color = Color.rgb(148, 102, 175)
         mStaffs = arrayListOf()
-        (0..99).forEach {
+        (0..10).forEach {
             mStaffs.add(Staff().apply {
                 this.memberName = "苗字 名前 $it"
                 this.teamShortName = "大内"
@@ -823,6 +809,9 @@ class WeekView : View {
         mHeaderLinePaint.color = mHeaderLineColor
         mHeaderTextEvenOfDayPaint.color = mHeaderColumnTextColor
         mHeaderTextEvenOfDayPaint.textAlign = Paint.Align.CENTER
+        mTitleCellPaint.textAlign = Paint.Align.CENTER
+        mTitleCellPaint.getTextBounds("00 PM", 0, "00 PM".length, rect)
+        mTitleTextCellHeight = rect.height().toFloat()
         initTextTimeWidth()
     }
 
@@ -854,7 +843,7 @@ class WeekView : View {
                 .map { mTeamTextPaint.measureText(it) }
                 .max()
                 ?: 0f
-        mDepartmentTextWidth = mDepartmentPaint.measureText(mCurentDepartment)
+        mDepartmentTextWidth = mDepartmentPaint.measureText(mCurrentDepartment)
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -951,6 +940,16 @@ class WeekView : View {
 
         mStaffs.indices.forEach { i ->
             // Draw view header left
+            pairSelectCell?.let {
+                if (mStaffs[i].officeUserId == it.second) {
+                    //draw background Cell
+                    val topLine = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * i).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP + DEFAULT_STROKE_WIDTH
+                    val topLineBellow = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * (i + 1)).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP
+                    val rect = RectF(0f, topLine, mHeaderColumnWidth - DEFAULT_STROKE_WIDTH, topLineBellow)
+                    mHeaderColumnBackgroundPaint.color = Color.CYAN
+                    canvas.drawRoundRect(rect, 0f, 0f, mHeaderColumnBackgroundPaint)
+                }
+            }
             drawHeaderLeftByPosition(i, canvas)
         }
         //draw line bottom left
@@ -978,13 +977,6 @@ class WeekView : View {
             canvas.drawLine(0f, topLine, mHeaderColumnWidth, topLine, mHeaderLinePaint)
         }
         if (topText < maxHeightDraw) {
-            if (pos % 3 == 0) {
-                //draw background Cell
-                val topLineBellow = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * (pos + 1)).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP
-                val rect = RectF(0f, topLine, mHeaderColumnWidth - DEFAULT_STROKE_WIDTH, topLineBellow)
-                mHeaderColumnBackgroundPaint.color = Color.CYAN
-                canvas.drawRoundRect(rect, 0f, 0f, mHeaderColumnBackgroundPaint)
-            }
             // draw background team text
             val background = getTextBackgroundSize(mHeaderColumnPadding.toFloat(), topText, teamName!!, mTeamTextPaint)
             mHeaderColumnBackgroundPaint.color = teamColor!!
@@ -1101,7 +1093,6 @@ class WeekView : View {
             // events only when it is the first iteration of the loop.
             if (mRefreshEvents || dayNumber == leftDaysWithGaps + 1 && mFetchedPeriod != TimeUtils.toWeekViewPeriodIndex(day).toInt()) {
                 getMoreEvents(day)
-                mRefreshEvents = true
             }
 
             // Draw background color for each day.
@@ -1147,7 +1138,7 @@ class WeekView : View {
             startPixel += mWidthPerDay
         }
         //Draw events END
-
+        mRefreshEvents = false
 
         //Draw header, time, column START
         mHeaderBackgroundPaint.alpha = NORMAL_ALPHA
@@ -1224,6 +1215,10 @@ class WeekView : View {
             if (day.isTheSameDay(today)) {
                 canvas.drawRect(startPixel + DEFAULT_STROKE_WIDTH, DEFAULT_STROKE_WIDTH, startPixel + mWidthPerDay - DEFAULT_STROKE_WIDTH, (height - DEFAULT_STROKE_WIDTH), mTodayBackgroundPaint)
             }
+            pairSelectCell?.let {
+                mHeaderColumnBackgroundPaint.color = Color.CYAN
+                if (day.isTheSameDay(it.first)) canvas.drawRect(startPixel + DEFAULT_STROKE_WIDTH, DEFAULT_STROKE_WIDTH, startPixel + mWidthPerDay - DEFAULT_STROKE_WIDTH, (height - DEFAULT_STROKE_WIDTH), mHeaderColumnBackgroundPaint)
+            }
             startPixel += mWidthPerDay
         }
         //Draw header, time, column END
@@ -1246,18 +1241,6 @@ class WeekView : View {
             }
         }
 
-//        run {
-//            var dayNumber = leftDaysWithGaps + 1
-//            var i = 0
-//            while (dayNumber <= leftDaysWithGaps + BUFFER_DAY * 2 + mNumberOfVisibleDays && i < mPositionFilled.size) {
-//                day = today.clone() as Calendar
-//                day.add(Calendar.DATE, dayNumber - 1)
-//                //drawAllDayEvents(day, startPixel + mEventSeparatorWidth * 2, canvas, i)
-//                startPixel += mWidthPerDay
-//                dayNumber++
-//                i++
-//            }
-//        }
         // Draws all-day events END
 
         // Draw the separator between weeks START
@@ -1429,7 +1412,9 @@ class WeekView : View {
         // draw header first cell (top left corner).
         val topClipRectFirstCell = DISTANCE_FROM_TOP
         val bottomClipRectFirstCell = topClipRectFirstCell + mHeaderHeight + DEFAULT_STROKE_WIDTH
-        canvas.clipRect(0f, topClipRectFirstCell.toFloat(), mHeaderColumnWidth + DEFAULT_STROKE_WIDTH, bottomClipRectFirstCell, Region.Op.REPLACE)
+        mEventRectDepartment = RectF(0f, topClipRectFirstCell.toFloat(), mHeaderColumnWidth + DEFAULT_STROKE_WIDTH, bottomClipRectFirstCell)
+        canvas.clipRect(mEventRectDepartment, Region.Op.REPLACE)
+
         // Draw line right first cell
         val startXLineRightFirstCell = mHeaderColumnWidth
         val startYLineRightFirstCell = DISTANCE_FROM_TOP
@@ -1446,17 +1431,17 @@ class WeekView : View {
         val bottomRectBackground = topRectBackground + DEFAULT_STROKE_WIDTH + mHeaderHeight
         val rightRectBackground = mHeaderColumnWidth + DEFAULT_STROKE_WIDTH
         val leftRectBackground = DEFAULT_STROKE_WIDTH
-        rect.set(leftRectBackground.toInt(), topRectBackground.toInt(), rightRectBackground.toInt(), bottomRectBackground.toInt())
+        rect.set(leftRectBackground.toInt(), topRectBackground, rightRectBackground.toInt(), bottomRectBackground.toInt())
         canvas.drawRect(rect, mDepartmentBackgroundPaint)
         // drawText first cell
-        mDepartmentTextWidth = mDepartmentPaint.measureText(mCurentDepartment)
+        mDepartmentTextWidth = mDepartmentPaint.measureText(mCurrentDepartment)
         val topText = mHeaderHeight / 2 + DISTANCE_FROM_TOP + mDepartmentTextHeight / 2
         val leftText = mHeaderColumnWidth * 2 / 5
         val topIconExpand = mHeaderHeight / 2 + DISTANCE_FROM_TOP - mDepartmentTextHeight / 4
         val leftIconExpand = leftText + mDepartmentTextWidth / 2 + DEFAULT_SPACE_WIDTH
         val rightIconExpand = leftIconExpand + DEFAULT_EXPAND_WIDTH
         val bottomIconExpand = topIconExpand + DEFAULT_EXPAND_HEIGHT
-        canvas.drawText(mCurentDepartment, leftText, topText, mDepartmentPaint)
+        canvas.drawText(mCurrentDepartment, leftText, topText, mDepartmentPaint)
         val destRect = RectF(leftIconExpand, topIconExpand, rightIconExpand, bottomIconExpand)
         canvas.drawBitmap(mBitmapExpand, null, destRect, mDepartmentPaint)
     }
@@ -1498,28 +1483,35 @@ class WeekView : View {
      * @param canvas         The canvas to draw upon.
      */
     private fun drawEvents(day: Calendar, startFromPixel: Float, canvas: Canvas) {
-        if (mEventRects.size > 0) {
+        val evenRectOfDay = arrayListOf<EventRect>()
+        if (mEventRects.size in 1..800) {
             for (i in mEventRects.indices) {
+                pairSelectCell?.let { pair ->
+                    if (pair.first.isTheSameDay(day)) {
+                        val position = mStaffs.indexOfFirst { pair.second == it.officeUserId }
+                        if (position != -1) {
+                            val left = startFromPixel - DEFAULT_STROKE_WIDTH
+                            val top = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * position).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP + DEFAULT_STROKE_WIDTH
+                            val bottom = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * (position + 1)).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP - DEFAULT_STROKE_WIDTH
+                            val right = left + mWidthPerDay
+                            drawEventBackgroundSelect(Color.CYAN, RectF(left, top, right, bottom), 0f, canvas)
+                        }
+                    }
+                }
                 if (mEventRects[i].event.date!!.isTheSameDay(day)) {
                     val event = mEventRects[i].event
                     val position = mStaffs.indexOfFirst { event.officeUserId == it.officeUserId }
                     if (position != -1) {
-                        val leftMorning = startFromPixel - DEFAULT_STROKE_WIDTH
-                        val topMorning = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * position).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP + DEFAULT_STROKE_WIDTH
+                        val leftMorning = startFromPixel - DEFAULT_STROKE_WIDTH/2
                         val rightMorning = leftMorning + mWidthPerDay / 3
-                        val bottomMorning = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * (position + 1)).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP - DEFAULT_STROKE_WIDTH
-                        val leftAfternoon = startFromPixel + mWidthPerDay / 3
-                        val topAfternoon = topMorning
+                        val leftAfternoon = rightMorning + DEFAULT_STROKE_WIDTH/2
                         val rightAfternoon = leftAfternoon + mWidthPerDay / 3
-                        val bottomAfternoon = bottomMorning
-                        val leftNight = startFromPixel + mWidthPerDay * 2 / 3
-                        val topNight = topMorning
+                        val leftNight = rightAfternoon + DEFAULT_STROKE_WIDTH/2
                         val rightNight = leftNight + mWidthPerDay / 3
-                        val bottomNight = bottomMorning
                         val left = leftMorning
-                        val top = topMorning
+                        val top = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * position).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP + DEFAULT_STROKE_WIDTH
+                        val bottom = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * (position + 1)).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP - DEFAULT_STROKE_WIDTH
                         val right = rightNight
-                        val bottom = bottomMorning
                         // Draw the event and the event name on top of it.
                         if (left < right &&
                                 left < width &&
@@ -1527,107 +1519,114 @@ class WeekView : View {
                                 right > mHeaderColumnWidth &&
                                 bottom > mHeaderHeight + DISTANCE_FROM_TOP) {
                             mEventRects[i].rectF = RectF(left, top, right, bottom)
-                            val rectMAN = RectF(leftMorning, topMorning, rightAfternoon, bottomMorning)
-                            canvas.drawText("dadasd", leftAfternoon, bottomAfternoon, mTitleCellPaint)
-                            drawEventBackground(event.morning?.color, rectMAN, 0f, canvas)
+                            // draw Event
+                            val topText = top + mHourHeight / 2 + mTextSizeTitleCell/2
+                            when {
+                                event.morning != null && event.afternoon != null && event.morning != null
+                                        && event.morning!!.name == event.afternoon!!.name && event.afternoon!!.name == event.night!!.name -> {
+                                    val rectMAN = RectF(leftMorning, top, rightNight, bottom)
+                                    drawEventBackground(event.morning?.color, rectMAN, 0f, canvas)
+
+                                    val leftTextMAN = leftAfternoon + mWidthPerDay / 6
+                                    drawEventTitle("MAN", leftTextMAN, topText, canvas)
+                                }
+                                event.morning != null && event.afternoon != null && event.morning!!.name == event.afternoon!!.name -> {
+                                    val rectMA = RectF(leftMorning, top, rightAfternoon, bottom)
+                                    drawEventBackground(event.morning?.color, rectMA, 0f, canvas)
+
+                                    val leftTextMA = leftAfternoon
+                                    drawEventTitle("MA", leftTextMA, topText, canvas)
+
+                                    if (event.night != null) {
+                                        val rectN = RectF(leftNight, top, rightNight, bottom)
+                                        drawEventBackground(event.night?.color, rectN, 0f, canvas)
+
+                                        val leftTextN = leftNight + mWidthPerDay / 6
+                                        drawEventTitle("N", leftTextN, topText, canvas)
+                                    }
+                                }
+                                event.afternoon != null && event.night != null && event.afternoon!!.name == event.night!!.name -> {
+                                    val rectAN = RectF(leftAfternoon, top, rightNight, bottom)
+                                    drawEventBackground(event.afternoon?.color, rectAN, 0f, canvas)
+
+                                    val leftTextAN = leftNight
+                                    drawEventTitle("AN", leftTextAN, topText, canvas)
+
+                                    if (event.morning != null) {
+                                        val rectM = RectF(leftMorning, top, rightMorning, bottom)
+                                        drawEventBackground(event.morning?.color, rectM, 0f, canvas)
+
+                                        val leftTextM = leftMorning + mWidthPerDay / 6
+                                        drawEventTitle("M", leftTextM, topText, canvas)
+                                    }
+                                }
+                                else -> {
+                                    if (event.morning != null) {
+                                        val rectM = RectF(leftMorning, top, rightMorning, bottom)
+                                        drawEventBackground(event.morning?.color, rectM, 0f, canvas)
+
+                                        val leftTextM = leftMorning + mWidthPerDay / 6
+                                        drawEventTitle("M", leftTextM, topText, canvas)
+                                    }
+                                    if (event.afternoon != null) {
+                                        val rectA = RectF(leftAfternoon, top, rightAfternoon, bottom)
+                                        drawEventBackground(event.afternoon?.color, rectA, 0f, canvas)
+
+                                        val leftTextA = leftAfternoon + mWidthPerDay / 6
+                                        drawEventTitle("A", leftTextA, topText, canvas)
+                                    }
+                                    if (event.night != null) {
+                                        val rectN = RectF(leftNight, top, rightNight, bottom)
+                                        drawEventBackground(event.night?.color, rectN, 0f, canvas)
+
+                                        val leftTextM = leftNight + mWidthPerDay / 6
+                                        drawEventTitle("N", leftTextM, topText, canvas)
+                                    }
+                                }
+                            }
                         } else {
                             mEventRects[i].rectF = null
                         }
+                        evenRectOfDay.add(mEventRects[i])
                     }
                 }
             }
+            mStaffs.indices.forEach { position ->
+                if (!evenRectOfDay.contains { it.event.officeUserId == mStaffs[position].officeUserId }) {
+                    val left = startFromPixel - DEFAULT_STROKE_WIDTH
+                    val top = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * position).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP + DEFAULT_STROKE_WIDTH
+                    val bottom = mHeaderHeight + mCurrentOrigin.y + (mHourHeight * (position + 1)).toFloat() + mHeaderMarginBottom + DISTANCE_FROM_TOP - DEFAULT_STROKE_WIDTH
+                    val right = left + mWidthPerDay
+                    val rectF = if (left < right &&
+                            left < width &&
+                            top < height &&
+                            right > mHeaderColumnWidth &&
+                            bottom > mHeaderHeight + DISTANCE_FROM_TOP) RectF(left, top, right, bottom) else null
+                    mEventRects.add(EventRect(ShiftItem().apply {
+                        date = day.time
+                        officeUserId = mStaffs[position].officeUserId
+                    }, rectF))
+                }
+            }
         }
+        Log.e("event size", mEventRects.size.toString())
     }
 
     private fun drawEventBackground(color: Int?, rectF: RectF, radius: Float, canvas: Canvas) {
         mBackgroundCellPaint.color = color ?: Color.rgb(255, 205, 151)
-        canvas.drawRoundRect(rectF, radius, radius, mEventBackgroundPaint)
+        canvas.drawRoundRect(rectF, radius, radius, mBackgroundCellPaint)
     }
 
-    /**
-     * Draw all the all-day events of a particular day.
-     *
-     * @param day           The day.
-     * @param startFromPixel The left position of the day area. The events will never go any left from this value.
-     * @param canvas         The canvas to draw upon.
-     * @param columnIndex
-     */
-//    private fun drawAllDayEvents(day: Calendar, startFromPixel: Float, canvas: Canvas, columnIndex: Int) {
-//        if (mEventRects.size > 0) {
-//            var stopped = false
-//            var moreAllDayEventIndex = -1
-//            for (i in mEventRects.indices) {
-//                if (mEventRects[i].event.allDay && day.isTheSameDay(mEventRects[i].event.startCalendar)) {
-//                    if (day.isTheSameDay(mEventRects[i].originalEvent.startCalendar)) {
-//                        // Calculate top.
-//                        var top: Float = (if (mNeedToScrollAllDayEvents) mCurrentOrigin.y else 0F) + (mHeaderRowPadding * 2).toFloat() + mNameTextHeight / 2 + mEventMarginVertical.toFloat() + mHeaderRowPadding.toFloat()
-//                        var validPosition = 0
-//                        while (mPositionFilled[columnIndex].contains(validPosition)) {
-//                            validPosition++
-//                        }
-//
-//                        var daysBetween = TimeUtils.daysBetween(mEventRects[i].originalEvent.startCalendar,
-//                                mEventRects[i].originalEvent.endCalendar)
-//                        val endColumn = columnIndex + daysBetween - 1
-//                        val canDrawInEndRow = checkCanDrawInEndRow(columnIndex, endColumn, validPosition)
-//                        if (validPosition >= mMaxVisibleAllDayEventNum - 1 && !canDrawInEndRow) {
-//                            daysBetween = 1
-//                            validPosition = mMaxVisibleAllDayEventNum - 1
-//                        }
-//                        if (stopped) {
-//                            continue
-//                        }
-//
-//                        top += (validPosition * mAllDayEventItemHeight) + ((mEventPadding / 2) * (validPosition + 1))
-//
-//                        // Calculate bottom.
-//                        val bottom = top + mAllDayEventItemHeight
-//
-//                        // Calculate left and right.
-//                        val right = startFromPixel + mWidthPerDay * daysBetween - mEventSeparatorWidth * 4
-//
-//                        // Draw the event and the event name on top of it.
-//                        if (startFromPixel < right && top < height && bottom > 0) {
-//                            mEventRects[i].rectF = RectF(startFromPixel, top, right, bottom)
-//                            mEventBackgroundPaint.color = Color.parseColor(mEventRects[i].event.color)
-//                            if (validPosition >= mMaxVisibleAllDayEventNum - 1 && !canDrawInEndRow) {
-//                                val oldColor = mEventTextPaint.color
-//                                mEventTextPaint.color = mHeaderColumnTextColor
-//                                val rect = Rect()
-//                                val text = context.getString(R.string.AP4001_AP4002_more_event, mAllDayEventNumArray[columnIndex] - getFilledRowNum(columnIndex))
-//                                mEventTextPaint.getTextBounds(text, 0, text.length, rect)
-//                                val x = startFromPixel + mWidthPerDay - rect.width().toFloat() - mHeaderColumnPadding.toFloat()
-//                                val y = top + mEventTextSize + mEventPadding / 2
-//                                canvas.drawText(text, x, y, mEventTextPaint)
-//                                mEventTextPaint.color = oldColor
-//                                mToggleList.add(mEventRects[i].rectF!!)
-//                                stopped = true
-//                            } else {
-//                                if (mEventRects[i].originalEvent.endCalendar.before(TimeUtils.today())) {
-//                                    mEventBackgroundPaint.alpha = PAST_ALPHA
-////                                    mEventTextPaint.alpha = PAST_ALPHA
-//                                }
-//                                canvas.drawRoundRect(mEventRects[i].rectF, mEventCornerRadius.toFloat(), mEventCornerRadius.toFloat(), mEventBackgroundPaint)
-//                                drawEventTitle(mEventRects[i].event, mEventRects[i].rectF!!, canvas, top, startFromPixel)
-//                                mEventBackgroundPaint.alpha = NORMAL_ALPHA
-////                                mEventTextPaint.alpha = NORMAL_ALPHA
-//                            }
-//                        } else {
-//                            mEventRects[i].rectF = null
-//                        }
-//                    } else if (mLimitedAllDayEvents && !canDrawInEndRow(mAllDayEventNumArray[columnIndex])) {
-//                        val p: Int = getMoreAllDayEventIndex(columnIndex)
-//                        if (p > -1) {
-//                            moreAllDayEventIndex = p
-//                        }
-//                    }
-//                }
-//            }
-//            if (mLimitedAllDayEvents && !stopped && moreAllDayEventIndex > -1) {
-//                drawMoreAllDayEvents(startFromPixel, moreAllDayEventIndex, columnIndex, canvas)
-//            }
-//        }
-//    }
+    private fun drawEventBackgroundSelect(color: Int, rectF: RectF, radius: Float, canvas: Canvas) {
+        mBackgroundCellPaint.color = color
+        canvas.drawRoundRect(rectF, radius, radius, mBackgroundCellPaint)
+    }
+
+    private fun drawEventTitle(text: String, left: Float, top: Float, canvas: Canvas) {
+        mTitleCellPaint.color = Color.BLACK
+        canvas.drawText(text, left, top, mTitleCellPaint)
+    }
+
 
     /**
      * Returns true if an all-day event can be drawn in the end row of a particular day.
@@ -1681,43 +1680,6 @@ class WeekView : View {
                 .count { rowSet.contains(it) }
     }
 
-    /**
-     * Draws the text indicating the other events which can't be displayed of a particular day.
-     *
-     * @param startFromPixel The left position of the day area. The events will never go any left from this value.
-     * @param eventIndex
-     * @param columnIndex
-     * @param canvas The canvas to draw upon.
-     * @return
-     */
-//    private fun drawMoreAllDayEvents(startFromPixel: Float, eventIndex: Int, columnIndex: Int, canvas: Canvas): Boolean {
-//        var top = (mHeaderRowPadding * 2).toFloat() + mNameTextHeight / 2 + mEventMarginVertical.toFloat() + mHeaderRowPadding.toFloat()
-//        top += ((mMaxVisibleAllDayEventNum - 1) * mAllDayEventItemHeight)
-//        // Calculate bottom.
-//        val bottom = top + mAllDayEventItemHeight - 4
-//        // Calculate left and right.
-//        val right = startFromPixel + mWidthPerDay
-//
-//        // Draw the event and the event name on top of it.
-//        if (startFromPixel < right && top < height && bottom > 0) {
-//            mEventBackgroundPaint.color = Color.parseColor(mEventRects[eventIndex].event.color)
-//            val oldColor = mEventTextPaint.color
-//            mEventTextPaint.color = mHeaderColumnTextColor
-//            val rect = Rect()
-//            val text = context.getString(R.string.AP4001_AP4002_more_event, mAllDayEventNumArray[columnIndex] - getFilledRowNum(columnIndex))
-//            mEventTextPaint.getTextBounds(text, 0, text.length, rect)
-//            val x = startFromPixel + mWidthPerDay - rect.width().toFloat() - mHeaderColumnPadding.toFloat()
-//            val y = top + mHeaderDayTextHeight - mEventPadding.toFloat()
-//            canvas.drawText(text, x, y, mEventTextPaint)
-//            mEventTextPaint.color = oldColor
-//            mEventRects[eventIndex].rectF = RectF(startFromPixel, top, right, bottom)
-//            mToggleList.add(mEventRects[eventIndex].rectF!!)
-//            return true
-//        } else {
-//            mEventRects[eventIndex].rectF = null
-//        }
-//        return false
-//    }
 
     /**
      * Toggles the value of `'mLimitedAllDayEvents'`, then refreshes the week view.
@@ -1725,106 +1687,6 @@ class WeekView : View {
     private fun toggleAllDayEvents() {
         mLimitedAllDayEvents = !mLimitedAllDayEvents
         notifyDataSetChanged()
-    }
-
-    /**
-     * Draw the name of the event on top of the event rectangle.
-     *
-     * @param event        The event of which the title (and location) should be drawn.
-     * @param rect         The rectangle on which the text is to be drawn.
-     * @param canvas       The canvas to draw upon.
-     * @param originalTop  The original top position of the rectangle. The rectangle may have some of its portion outside of the visible area.
-     * @param originalLeft The original left position of the rectangle. The rectangle may have some of its portion outside of the visible area.
-     */
-    private fun drawEventTitle(event: EventSummary, rect: RectF, canvas: Canvas, originalTop: Float, originalLeft: Float) {
-        if (rect.right - rect.left - (mEventPadding * 2).toFloat() < 0) return
-        if (rect.bottom - rect.top - mEventPadding * 2 < 0) return
-        if (rect.bottom - rect.top < 0) return
-
-        // Prepare the name of the event.
-        val title = SpannableStringBuilder()
-        when (event.calendarType) {
-            DJCalendarEnum.Type.MY -> {
-                title.append(event.title)
-            }
-            DJCalendarEnum.Type.STAFF -> {
-                title.append(event.title)
-            }
-            DJCalendarEnum.Type.INSIDE_GROUP -> {
-                title.append(event.title)
-            }
-            DJCalendarEnum.Type.OUTSIDE_GROUP -> {
-                title.append(event.title)
-            }
-            DJCalendarEnum.Type.MEETING_DECIDED,
-            DJCalendarEnum.Type.RQ_MEETING_MEDIATOR -> {
-                val office = event.mr?.office ?: ""
-                val name = if (event.mr?.name.isNullOrEmpty()) "" else "(${event.mr?.name})"
-                title.append(context.getString(R.string.AP4002_TITLE_MEETING_DECIDED, office, name))
-            }
-            DJCalendarEnum.Type.MEETING_ACCEPTING -> {
-                title.append(context.getString(R.string.AP4002_TITLE_MEETING_ACCEPTING))
-            }
-            DJCalendarEnum.Type.MEETING_MEDIATOR -> {
-                title.append(context.getString(R.string.AP4002_TITLE_MEETING_MEDIATOR))
-            }
-            DJCalendarEnum.Type.BRIEFING -> {
-                val office = "#briefing"
-                val name = ""
-                title.append(context.getString(R.string.AP4002_TITLE_BRIEFING, office, name))
-            }
-            DJCalendarEnum.Type.VISIT -> {
-                val visitor = event.title
-                title.append(context.getString(R.string.AP4002_TITLE_VISIT, visitor))
-            }
-            DJCalendarEnum.Type.SOCIETY -> {
-                title.append(context.getString(R.string.AP4002_TITLE_SOCIETY, event.title))
-            }
-            DJCalendarEnum.Type.HOLIDAY -> {
-                title.append(event.title)
-            }
-            DJCalendarEnum.Type.EXTERNAL -> {
-                title.append(event.title)
-            }
-            else -> title.append("asdasdasda")
-        }
-
-        val availableHeight = (rect.bottom - originalTop - (mEventPadding * 2))
-        val availableWidth = (rect.right - originalLeft - (mEventPadding * 2))
-
-        if (event.allDay) {
-            // Prepare to draw text.
-            val metrics = BoringLayout.Metrics()
-            metrics.width = Math.ceil(mEventTextPaint.measureText(title, 0, title.length).toDouble()).toInt()
-            val temp = mEventTextPaint.fontMetricsInt
-            metrics.ascent = temp.ascent
-            metrics.bottom = temp.bottom
-            metrics.descent = temp.descent
-            metrics.top = temp.top
-            metrics.leading = temp.leading
-            val textLayout = BoringLayout.make(ellipsize(title, rect.right - originalLeft + mEventPadding * 2), mEventTextPaint, (rect.right - originalLeft - (mEventPadding * 2).toFloat()).toInt(), Layout.Alignment.ALIGN_NORMAL, 1.0f, 1.0f, metrics, false)
-            // Draw text.
-            canvas.save()
-            canvas.clipRect(originalLeft + mEventPadding, originalTop, rect.right, originalTop + mAllDayEventItemHeight)
-            canvas.translate(originalLeft + mEventPadding, originalTop + (mAllDayEventItemHeight - (if (mEventTextSize >= 10) 0 else 4) - textLayout.height) / 2)
-            textLayout.draw(canvas)
-            canvas.restore()
-        } else {
-            val rec = Rect()
-            val strName = "MR"
-            mEventTextPaint.getTextBounds(strName, 0, strName.length, rec)
-            var textLayout = StaticLayout(title, mEventTextPaint, availableWidth.toInt(), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false)
-
-            val lineHeight = textLayout.height / textLayout.lineCount
-            val availableLineCount = Math.max(Math.ceil(availableHeight / lineHeight.toDouble()), 1.0).toInt()
-            textLayout = StaticLayout(ellipsize(title, (availableLineCount * availableWidth)), mEventTextPaint, (rect.right - originalLeft - (mEventPadding * 2).toFloat()).toInt(), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false)
-
-            canvas.save()
-            canvas.clipRect(originalLeft + mEventPadding, originalTop - mEventSeparatorWidth + mEventPadding, rect.right, rect.bottom + mEventPadding)
-            canvas.translate(originalLeft + mEventPadding, originalTop - mEventSeparatorWidth + mEventPadding)
-            textLayout.draw(canvas)
-            canvas.restore()
-        }
     }
 
     fun ellipsize(original: CharSequence, avail: Float): CharSequence {
@@ -1856,65 +1718,42 @@ class WeekView : View {
      * @param day The day where the user is currently is.
      */
     private fun getMoreEvents(day: Calendar) {
+        if (mWeekViewLoader == null && !isInEditMode) {
+            throw IllegalStateException("You must provide a MonthChangeListener")
+        }
+        mFetchedPeriod = -1
+
+        val periodToFetch: Int = TimeUtils.toWeekViewPeriodIndex(day).toInt()
+        if (!isInEditMode && (mFetchedPeriod < 0 || mFetchedPeriod != periodToFetch || mRefreshEvents)) {
+            mFetchedPeriod = periodToFetch
+        }
+    }
+
+    fun getDataEvents() {
 
         // Get more events if the month is changed.
         if (mWeekViewLoader == null && !isInEditMode) {
             throw IllegalStateException("You must provide a MonthChangeListener")
         }
         // If a refresh was requested then reset some variables.
-        if (mRefreshEvents) {
-            mEventRects.clear()
-//            mPreviousPeriodEvents = null
-            mCurrentPeriodEvents = null
-//            mNextPeriodEvents = null
-            mFetchedPeriod = -1
+        mEventRects.clear()
+        mCurrentPeriodEvents = null
+
+        var currentPeriodEvents: ShiftData? = null
+
+        if (currentPeriodEvents == null) {
+            currentPeriodEvents = mWeekViewLoader?.onLoad(mFirstVisibleDay!!)
         }
 
-        val periodToFetch: Int = TimeUtils.toWeekViewPeriodIndex(day).toInt()
-        if (!isInEditMode && (mFetchedPeriod < 0 || mFetchedPeriod != periodToFetch || mRefreshEvents)) {
-            var currentPeriodEvents: ShiftData? = null
+        // Clear events.
+        mEventRects.clear()
+        mMemos.clear()
+        mStaffs.clear()
+        sortAndCacheEvents(currentPeriodEvents!!)
+        calculateHeaderHeightAndColumnWidth()
 
-            if (currentPeriodEvents == null) {
-                currentPeriodEvents = mWeekViewLoader?.onLoad(mFirstVisibleDay!!.time,mLastVisibleDay!!.time)
-            }
-
-            // Clear events.
-            mEventRects.clear()
-            mMemos.clear()
-            mStaffs.clear()
-            sortAndCacheEvents(currentPeriodEvents!!)
-            //determineHolidays()
-            calculateHeaderHeightAndColumnWidth()
-
-            mCurrentPeriodEvents = currentPeriodEvents
-            mFetchedPeriod = periodToFetch
-        }
-
-        // Prepare to calculate positions of each events.
-//        val tempEvents = mEventRects
-//        mEventRects = ArrayList()
-
-        // Iterate through each day with events to calculate the position of the events.
-//        while (tempEvents.size > 0) {
-//            val eventRects = ArrayList<EventRect>(tempEvents.size)
-//
-//            // Get first event for a day.
-//            val eventRect1 = tempEvents.removeAt(0)
-//            eventRects.add(eventRect1)
-//
-//            var i = 0
-//            while (i < tempEvents.size) {
-//                // Collect all other events for same day.
-//                val eventRect2 = tempEvents[i]
-//                if (eventRect1.event.date!!.isTheSameDay(eventRect2.event.date!!)) {
-//                    tempEvents.removeAt(i)
-//                    eventRects.add(eventRect2)
-//                } else {
-//                    i++
-//                }
-//            }
-        //computePositionOfEvents(eventRects)
-        //}
+        mCurrentPeriodEvents = currentPeriodEvents
+        notifyDataSetChanged()
     }
 
     /**
@@ -1933,7 +1772,7 @@ class WeekView : View {
      */
     private fun sortAndCacheEvents(events: ShiftData?) {
         val sortedEvents = sortEvents(events)
-        mCurentDepartment = events?.departmentId
+        mCurrentDepartment = events?.departmentId
         sortedEvents.first.forEach {
             cacheMemo(it)
         }
@@ -1945,12 +1784,12 @@ class WeekView : View {
         }
     }
 
-    private fun cacheMemo(it: Memo) {
-        mMemos.add(it)
+    private fun cacheMemo(memo: Memo) {
+        mMemos.add(memo)
     }
 
-    private fun cacheStaff(it: Staff) {
-        mStaffs.add(it)
+    private fun cacheStaff(staff: Staff) {
+        mStaffs.add(staff)
     }
 
     /**
@@ -1984,122 +1823,6 @@ class WeekView : View {
         })
         return Triple(memos, staffs, eventCells)
     }
-
-    /**
-     * Calculates the left and right positions of each events. This comes handy specially if events
-     * are overlapping.
-     *
-     * @param eventRects The events along with their wrapper class.
-     */
-//    private fun computePositionOfEvents(eventRects: List<EventRect>) {
-//        // Make "collision groups" for all events that collide with others.
-//        val collisionGroups = ArrayList<ArrayList<EventRect>>()
-//        for (eventRect in eventRects) {
-//            var isPlaced = false
-//
-//            outerLoop@ for (collisionGroup in collisionGroups) {
-//                for (groupEvent in collisionGroup) {
-//                    if (isEventsCollide(groupEvent.event, eventRect.event) && groupEvent.event.allDay == eventRect.event.allDay) {
-//                        collisionGroup.add(eventRect)
-//                        isPlaced = true
-//                        break@outerLoop
-//                    }
-//                }
-//            }
-//
-//            if (!isPlaced) {
-//                val newGroup = ArrayList<EventRect>()
-//                newGroup.add(eventRect)
-//                collisionGroups.add(newGroup)
-//            }
-//        }
-//
-//        for (collisionGroup in collisionGroups) {
-//            expandEventsToMaxWidth(collisionGroup)
-//        }
-//    }
-
-    /**
-     * Expands all the events to maximum possible width. The events will try to occupy maximum
-     * space available horizontally.
-     *
-     * @param collisionGroup The group of events which overlap with each other.
-     */
-//    private fun expandEventsToMaxWidth(collisionGroup: List<EventRect>) {
-//        // Expand the events to maximum possible width.
-//        val columns = ArrayList<ArrayList<EventRect>>()
-//        columns.add(ArrayList())
-//        for (eventRect in collisionGroup) {
-//            var isPlaced = false
-//            for (column in columns) {
-//                if (column.isEmpty()) {
-//                    column.add(eventRect)
-//                    isPlaced = true
-//                } else if (!isEventsCollide(eventRect.event, column.last().event)) {
-//                    column.add(eventRect)
-//                    isPlaced = true
-//                    break
-//                }
-//            }
-//            if (!isPlaced) {
-//                val newColumn = ArrayList<EventRect>()
-//                newColumn.add(eventRect)
-//                columns.add(newColumn)
-//            }
-//        }
-//
-//        // Calculate left and right position for all the events.
-//        // Get the maxRowCount by looking in all columns.
-//        val maxRowCount = columns
-//                .map { it.size }
-//                .max()
-//                ?: 0
-//        for (i in 0 until maxRowCount) {
-//            // Set the left and right values of the event.
-//            var j = 0f
-//            for (column in columns) {
-//                if (column.size >= i + 1) {
-//                    val eventRect = column[i]
-//                    eventRect.width = 1f / columns.size
-//                    eventRect.left = j / columns.size
-//                    if (!eventRect.event.allDay) {
-//                        //#13750
-//                        val hourStart = eventRect.event.startCalendar.get(Calendar.HOUR_OF_DAY)
-//                        var minuteStart = eventRect.event.startCalendar.get(Calendar.MINUTE)
-//                        if (hourStart == 23 && minuteStart >= 45) {
-//                            minuteStart = 45
-//                        }
-//                        eventRect.top = (hourStart * 60 + minuteStart).toFloat()
-//                        var hourEnd = eventRect.event.endCalendar.get(Calendar.HOUR_OF_DAY)
-//                        var minuteEnd = eventRect.event.endCalendar.get(Calendar.MINUTE)
-//                        if (hourEnd == 0) {
-//                            if (minuteEnd == 0) {
-//                                hourEnd = 23
-//                                minuteEnd = 59
-//                            }
-//                            if (minuteEnd <= 15) {
-//                                minuteEnd = 15
-//                            }
-//                        }
-//
-//                        if (hourStart == hourEnd && minuteEnd - minuteStart < BLOCK) {
-//                            minuteEnd = minuteStart + 15
-//                        }
-//
-//                        eventRect.bottom = (hourEnd * 60 + minuteEnd).toFloat()
-//                        if (eventRect.top == eventRect.bottom) {
-//                            eventRect.top--
-//                        }
-//                    } else {
-//                        eventRect.top = 0f
-//                        eventRect.bottom = mAllDayEventHeight.toFloat()
-//                    }
-//                    mEventRects.add(eventRect)
-//                }
-//                j++
-//            }
-//        }
-//    }
 
     /**
      * Checks if two events overlap.
@@ -2225,11 +1948,11 @@ class WeekView : View {
         var bottom: Float = 0F
     }
 
-    /////////////////////////////////////////////////////////////////
-    //
-    //      Functions related to scrolling.
-    //
-    /////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+//
+//      Functions related to scrolling.
+//
+/////////////////////////////////////////////////////////////////
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -2264,20 +1987,20 @@ class WeekView : View {
                 Math.round(leftDays).toDouble()
         }
 
-        if (mCurrentScrollDirection == Direction.NONE) {
-            mScrollStateChangeListener?.onScrollSateChanged(false)
-        } else if (mCurrentScrollDirection == Direction.LEFT || mCurrentScrollDirection == Direction.RIGHT || mCurrentScrollDirection == Direction.VERTICAL) {
-            mScrollStateChangeListener?.onScrollSateChanged(true)
-        }
+//        if (mCurrentScrollDirection == Direction.NONE) {
+//            mScrollStateChangeListener?.onScrollSateChanged(false)
+//        } else if (mCurrentScrollDirection == Direction.LEFT || mCurrentScrollDirection == Direction.RIGHT || mCurrentScrollDirection == Direction.VERTICAL) {
+//            mScrollStateChangeListener?.onScrollSateChanged(true)
+//        }
 
         val nearestOrigin = (mCurrentOrigin.x - leftDays * mWidthPerDay).toInt()
-
         if (nearestOrigin != 0) {
             // Stop current animation.
             mScroller?.forceFinished(true)
             // Snap to date.
             mScroller?.startScroll(mCurrentOrigin.x.toInt(), mCurrentOrigin.y.toInt(), -nearestOrigin, 0, (Math.abs(nearestOrigin) / mWidthPerDay * mScrollDuration).toInt())
             ViewCompat.postInvalidateOnAnimation(this@WeekView)
+            mScrollHorizontal?.onFirstVisibleDayChanged(mFirstVisibleDay!!, mLastVisibleDay!!)
         }
         // Reset scrolling and fling direction.
         mCurrentFlingDirection = Direction.NONE
@@ -2314,11 +2037,11 @@ class WeekView : View {
      */
     private fun forceFinishScroll(): Boolean = false
 
-    /////////////////////////////////////////////////////////////////
-    //
-    //      Public methods.
-    //
-    /////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+//
+//      Public methods.
+//
+/////////////////////////////////////////////////////////////////
 
     /**
      * Show today on the week view.
@@ -2440,22 +2163,14 @@ class WeekView : View {
         fun onEventLongPress(event: ShiftItem, eventRect: RectF)
     }
 
-    interface EmptyViewClickListener {
-        /**
-         * Triggered when the users clicks on a empty space of the calendar.
-         *
-         * @param time: [Calendar] object set with the date and time of the clicked position on the view.
-         */
-        fun onEmptyViewClicked(time: Calendar)
+    interface ViewClickListener {
+        fun onDepartmentClick(mCurrentDepartment: String?)
+
+        fun onEventClick(event: ShiftItem)
     }
 
-    interface EmptyViewLongPressListener {
-        /**
-         * Similar to [EmptyViewClickListener] but with long press.
-         *
-         * @param time: [Calendar] object set with the date and time of the long pressed position on the view.
-         */
-        fun onEmptyViewLongPress(time: Calendar)
+    interface ViewLongPressListener {
+        fun onEventViewLongPress(time: Calendar)
     }
 
     interface ScrollListener {

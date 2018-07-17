@@ -12,5 +12,5 @@ interface WeekViewLoader {
      */
     fun onLoad(periodIndex: Int): ShiftData?
 
-    fun onLoad(firstDay: Date, lastDay: Date): ShiftData?
+    fun onLoad(firstDay: Calendar): ShiftData?
 }

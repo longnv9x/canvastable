@@ -4,8 +4,8 @@ import com.example.long_pc.myapplication.model.ShiftData
 import java.util.*
 
 class MonthLoader(private var onMonthChangeListener: MonthChangeListener) : WeekViewLoader {
-    override fun onLoad(firstDay: Date, lastDay: Date): ShiftData? {
-       return onMonthChangeListener.onDayChange(firstDay,lastDay)
+    override fun onLoad(firstDay: Calendar): ShiftData? {
+       return onMonthChangeListener.onDayChange(firstDay)
     }
 
     override fun onLoad(periodIndex: Int): ShiftData? {
@@ -20,6 +20,6 @@ class MonthLoader(private var onMonthChangeListener: MonthChangeListener) : Week
          * @return a list of the events happening **during the specified month**.
          */
         fun onMonthChange(periodIndex: Int): ShiftData?
-        fun onDayChange(firstDay: Date, lastDay: Date): ShiftData?
+        fun onDayChange(firstDay: Calendar): ShiftData?
     }
 }

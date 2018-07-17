@@ -1,11 +1,13 @@
 package com.example.long_pc.myapplication
 
-import android.graphics.RectF
 import android.os.Bundle
+import android.os.Handler
+import android.support.design.widget.BottomSheetBehavior
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.RelativeLayout
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.example.long_pc.myapplication.model.SettingCalendar
@@ -26,8 +28,12 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
             return ret
         }
     }
-    lateinit var presenter: CalendarWeekPresenter
 
+    @BindView(R.id.bs_plan_preview)
+    lateinit var planPreviewLayout: RelativeLayout
+
+    private lateinit var bsPlanPreview: NonDraggingBottomSheet<RelativeLayout>
+    lateinit var presenter: CalendarWeekPresenter
     @BindView(R.id.weekView)
     lateinit var weekView: WeekView
 
@@ -36,26 +42,31 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
     private var isScrolling: Boolean = false
 
     init {
-        presenter= CalendarWeekPresenter()
+        presenter = CalendarWeekPresenter()
     }
+
     val currentTime: Calendar?
         get() {
             return Calendar.getInstance()
         }
 
     //region Week view events
-    private val eventClickListener: WeekView.EventClickListener = object : WeekView.EventClickListener {
-        override fun onEventClick(event: ShiftItem, eventRect: RectF) {
+    private val eventClickListener: WeekView.ViewClickListener = object : WeekView.ViewClickListener {
+        override fun onDepartmentClick(mCurrentDepartment: String?) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
 
+        override fun onEventClick(event: ShiftItem) {
+            showPlanPreviewBottomSheet(true, event, event.date)
         }
     }
 
     private val monthChangeListener: MonthLoader.MonthChangeListener = object : MonthLoader.MonthChangeListener {
-        override fun onDayChange(firstDay: Date, lastDay: Date): ShiftData? {
+        override fun onDayChange(firstDay: Calendar): ShiftData? {
             if (presenter.currentTime == null) {
                 presenter.currentTime = weekView.mFirstVisibleDay
             }
-            return presenter.getEventFromCache(firstDay,lastDay)
+            return presenter.getEventFromCache(firstDay)
         }
 
         override fun onMonthChange(periodIndex: Int): ShiftData? {
@@ -72,15 +83,45 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
         }
     }
 
+    private var lastScrollUpdate: Long = -1
     private val scrollSateChangeListener: WeekView.ScrollStateChangeListener = object : WeekView.ScrollStateChangeListener {
         override fun onScrollSateChanged(isIdle: Boolean) {
             isScrolling = !isIdle
+            if (isScrolling) {
+                showPlanPreviewBottomSheet(false)
+            }
+        }
+    }
+
+    private inner class ScrollStateHandler : Runnable {
+
+        override fun run() {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastScrollUpdate > 500) {
+                lastScrollUpdate = -1
+                onScrollEnd()
+            } else {
+                Handler().postDelayed(this, 100)
+            }
+        }
+    }
+
+    private fun onScrollEnd() {
+        weekView.getDataEvents()
+    }
+
+    private val scrollListener: WeekView.ScrollListener = object : WeekView.ScrollListener {
+        override fun onFirstVisibleDayChanged(newFirstVisibleDay: Calendar, oldFirstVisibleDay: Calendar) {
+            if (lastScrollUpdate == (-1).toLong()) {
+                Handler().postDelayed(ScrollStateHandler(), 100)
+            }
+            lastScrollUpdate = System.currentTimeMillis()
         }
     }
 
     private val initListener: WeekView.InitListener = object : WeekView.InitListener {
         override fun onViewCreated() {
-           goToDate(presenter.currentTime?.time, presenter.currentFocusedDay)
+            goToDate(presenter.currentTime?.time, presenter.currentFocusedDay)
         }
     }
     //endregion Week view event
@@ -91,8 +132,8 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view= inflater.inflate(R.layout.fragment_calendar_week, container,false)
-        ButterKnife.bind(this,view)
+        val view = inflater.inflate(R.layout.fragment_calendar_week, container, false)
+        ButterKnife.bind(this, view)
         return view
     }
 
@@ -103,10 +144,18 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
     }
 
     private fun initView() {
-        weekView.mEventClickListener = eventClickListener
+        //BEGIN: init bottom sheet
+        bsPlanPreview = BottomSheetBehavior.from(planPreviewLayout) as NonDraggingBottomSheet<RelativeLayout>
+        bsPlanPreview.peekHeight = 0
+        bsPlanPreview.isHideable = true
+        bsPlanPreview.state = BottomSheetBehavior.STATE_HIDDEN
+        //END: init bottom sheet
+
+        weekView.mViewClickListener = eventClickListener
         weekView.setMonthChangeListener(monthChangeListener)
         weekView.mTitleChangeListener = onTitleChangedListener
         weekView.mScrollStateChangeListener = scrollSateChangeListener
+        weekView.mScrollHorizontal = scrollListener
         weekView.mInitListener = initListener
     }
 
@@ -122,6 +171,7 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
         isInitDatePicker = true
 
     }
+
     /**
      * Triggered when selected a date on date picker
      */
@@ -221,5 +271,37 @@ class CalendarWeekFragment : Fragment(), CalendarWeekView {
 
     override fun getEventFromCache(startTime: Date, endTime: Date): ShiftData? {
         return presenter.getEventFromCacheForWeek(startTime, endTime)
+    }
+
+    override fun showPlanPreviewBottomSheet(isShow: Boolean, events: ShiftItem?, dateSelected: Date?) {
+        var state = StateShiftEnum.HIDDEN
+        if (isShow) {
+//            val eventsData: ShiftItem = events ?: ShiftItem()
+//            setPreviewEventShowNumber(previewNum, presenter.calendarSetting.fontSize, weekNumber)
+//            state = StateShiftEnum.SHOW
+//            // tvEmptyPreview.visibility = if (eventsData.isEmpty()) View.VISIBLE else View.INVISIBLE
+//            previewAdapter.setPreviewEvents(presenter.fillEvents(eventsData))
+//            title = TimeUtils.getDateFormat(getString(R.string.AP4001_TITLE_SELECTED)).format(dateSelected)
+        }
+        //#6535
+//        monthAreBeingDisplayed = title
+//        parentView?.updateTitle(CalendarFragment.CALENDAR_MONTH_TAB, monthAreBeingDisplayed, state)
+        bsPlanPreview.state = if (isShow) BottomSheetBehavior.STATE_EXPANDED else BottomSheetBehavior.STATE_COLLAPSED
+    }
+
+    override fun setPreviewEventShowNumber(showNumber: Int, textSize: Int, weekNumber: Int) {
+        // to ensure that we can get height of calendar's RecyclerView
+        val itemHeight = context?.resources?.getDimension(R.dimen.ap4001_preview_item_height) ?: 0F
+//            val rowWeekHeight = WeekView.calculateHeight(context, showNumber, textSize)//#8535
+        val newPreviewHeight = showNumber * itemHeight.toInt()
+        val previewLayoutParams = planPreviewLayout.layoutParams
+        if (previewLayoutParams.height != newPreviewHeight) {
+            previewLayoutParams.height = newPreviewHeight
+            planPreviewLayout.layoutParams = previewLayoutParams
+            planPreviewLayout.requestLayout()
+        }
+        planPreviewLayout.post {
+            //scrollToWeekNumberWhenShowPreview(weekNumber)
+        }
     }
 }

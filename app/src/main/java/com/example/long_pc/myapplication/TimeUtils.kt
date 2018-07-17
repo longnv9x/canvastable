@@ -82,7 +82,8 @@ fun Date.isTheSameDay(calendar: Calendar): Boolean {
 
 fun Date.getDaysAgo(daysAgo: Int): Date {
     val calendar = Calendar.getInstance()
-    calendar.add(Calendar.DAY_OF_YEAR, daysAgo)
+    calendar.time= this
+    calendar.add(Calendar.DAY_OF_MONTH, daysAgo)
 
     return calendar.time
 }
